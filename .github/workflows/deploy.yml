@@ -17,15 +17,15 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build with Maven
+      - name: Build with Gradle
         run: |
-          chmod +x ./mvnw
-          ./mvnw clean package -DskipTests
+          chmod +x ./gradlew
+          ./gradlew clean bootJar
 
       - name: Prepare Deployment Files
         run: |
           mkdir -p deploy
-          cp target/zerorisk.jar deploy/app.jar
+          cp build/libs/zerorisk.jar deploy/app.jar
           cp Dockerfile deploy/
           echo "${{ secrets.ENV_FILE }}" > deploy/.env
 
