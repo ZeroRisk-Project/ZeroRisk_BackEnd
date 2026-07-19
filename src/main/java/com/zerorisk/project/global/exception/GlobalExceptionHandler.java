@@ -72,4 +72,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("USER_001", e.getMessage()));
     }
+
+    @ExceptionHandler(ReportNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleReportNotFound(ReportNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("REPORT_001", e.getMessage()));
+    }
+
+    @ExceptionHandler(ReportTargetNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleReportTargetNotFound(ReportTargetNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("REPORT_002", e.getMessage()));
+    }
+
+    @ExceptionHandler(InquiryNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleInquiryNotFound(InquiryNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("INQUIRY_001", e.getMessage()));
+    }
+
+    @ExceptionHandler(InquiryAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleInquiryAccessDenied(InquiryAccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse("INQUIRY_002", e.getMessage()));
+    }
 }
