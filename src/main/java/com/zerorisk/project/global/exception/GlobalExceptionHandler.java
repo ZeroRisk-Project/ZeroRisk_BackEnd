@@ -52,4 +52,24 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse("AUTH_004", e.getMessage()));
     }
+
+    @ExceptionHandler(SelfFollowException.class)
+    public ResponseEntity<ErrorResponse> handleSelfFollow(SelfFollowException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse("FOLLOW_001", e.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateFollowException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateFollow(DuplicateFollowException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("FOLLOW_002", e.getMessage()));
+    }
+
+    @ExceptionHandler(FollowNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleFollowNotFound(FollowNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("FOLLOW_003", e.getMessage()));
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("USER_001", e.getMessage()));
+    }
 }
