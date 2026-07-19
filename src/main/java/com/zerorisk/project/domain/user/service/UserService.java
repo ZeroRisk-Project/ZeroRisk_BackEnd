@@ -1,6 +1,7 @@
 package com.zerorisk.project.domain.user.service;
 
 import com.zerorisk.project.domain.user.dto.MyProfileResponse;
+import com.zerorisk.project.domain.user.dto.NicknameCheckResponse;
 import com.zerorisk.project.domain.user.dto.SignupRequest;
 import com.zerorisk.project.domain.user.dto.SignupResponse;
 import com.zerorisk.project.domain.user.dto.UpdateProfileRequest;
@@ -42,6 +43,12 @@ public class UserService {
         User savedUser = userRepository.save(user);
 
         return new SignupResponse(savedUser.getId(), savedUser.getEmail(), savedUser.getNickname());
+    }
+
+    @Transactional(readOnly = true)
+    public NicknameCheckResponse checkNickname(String nickname) {
+        boolean available = !userRepository.existsByNickname(nickname);
+        return new NicknameCheckResponse(available);
     }
 
     @Transactional(readOnly = true)
