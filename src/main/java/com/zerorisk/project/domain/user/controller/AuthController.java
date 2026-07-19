@@ -3,26 +3,32 @@ package com.zerorisk.project.domain.user.controller;
 import com.zerorisk.project.domain.auth.dto.LoginRequest;
 import com.zerorisk.project.domain.auth.dto.LoginResponse;
 import com.zerorisk.project.domain.auth.service.AuthService;
+import com.zerorisk.project.domain.user.dto.NicknameCheckResponse;
 import com.zerorisk.project.domain.user.dto.SignupRequest;
 import com.zerorisk.project.domain.user.dto.SignupResponse;
 import com.zerorisk.project.domain.user.service.UserService;
 import com.zerorisk.project.global.exception.InvalidRefreshTokenException;
 import com.zerorisk.project.global.security.CookieUtil;
-import jakarta.servlet.http.Cookie;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
+@Validated
 public class AuthController {
 
     private static final long ACCESS_TOKEN_MAX_AGE = 60 * 30;
@@ -76,5 +82,11 @@ public class AuthController {
                 .header("Set-Cookie", accessCookie.toString())
                 .header("Set-Cookie", refreshCookie.toString())
                 .body(result.response());
+    }
+
+    @GetMapping("/nickname-check")
+    public NicknameCheckResponse checkNickname(
+            @RequestParam @NotBlank @Size(max = 12) String nickname) {
+        return userService.checkNickname(nickname);
     }
 }
