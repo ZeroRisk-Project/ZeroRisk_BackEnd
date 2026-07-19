@@ -48,3 +48,7 @@ tasks.named('test') {
 tasks.named('bootJar') {
     archiveFileName = 'zerorisk.jar'
 }
+
+tasks.named('bootRun') {
+    jvmArgs = ['-Dfile.encoding=UTF-8']
+}
