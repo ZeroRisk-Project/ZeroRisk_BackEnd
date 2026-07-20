@@ -95,6 +95,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse("INQUIRY_002", e.getMessage()));
     }
 
+    @ExceptionHandler(StockNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleStockNotFound(StockNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("STOCK_001", e.getMessage()));
+    }
+
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException e) {
         String message = e.getConstraintViolations().stream()
