@@ -110,4 +110,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse("VALIDATION_002", message));
     }
+
+    @ExceptionHandler(MyRankingNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleMyRankingNotFound(MyRankingNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("RANKING_001", e.getMessage()));
+    }
 }
