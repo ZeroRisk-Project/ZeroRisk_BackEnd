@@ -22,4 +22,5 @@ jobs:
         with:
           gemini-key: ${{ secrets.GEMINI_API_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          model: "gemini-2.5-pro"
+          model: "gemini-2.5-flash"
+          exclude: "**/*.json, **/*.lock, dist/**, node_modules/**, .github/**"
