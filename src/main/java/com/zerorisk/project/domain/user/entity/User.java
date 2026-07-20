@@ -101,6 +101,12 @@ public class User {
         this.suspensionReason = reason;
     }
 
+    public void unsuspend() {
+        this.status = UserStatus.ACTIVE;
+        this.suspendedUntil = null;
+        this.suspensionReason = null;
+    }
+
     public void addActivityScore(int score) {
         this.activityScore += score;
     }
