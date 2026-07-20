@@ -2,6 +2,7 @@ package com.zerorisk.project.domain.auth.service;
 
 import com.zerorisk.project.domain.auth.dto.LoginRequest;
 import com.zerorisk.project.domain.auth.dto.LoginResponse;
+import com.zerorisk.project.domain.user.entity.OAuthProvider;
 import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.repository.UserRepository;
 import com.zerorisk.project.global.exception.InvalidCredentialsException;
@@ -81,5 +82,11 @@ public class AuthService {
     }
 
     public record TokenResult(LoginResponse response, String accessToken, String refreshToken) {
+    }
+
+    @Transactional
+    public void handleKakaoUnlink(String kakaoUserId) {
+        userRepository.findByOauthProviderAndOauthProviderId(OAuthProvider.KAKAO, kakaoUserId)
+                .ifPresent(User::withdraw);
     }
 }

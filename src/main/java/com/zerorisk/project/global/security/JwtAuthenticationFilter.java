@@ -1,6 +1,7 @@
 package com.zerorisk.project.global.security;
 
 import com.zerorisk.project.domain.user.entity.User;
+import com.zerorisk.project.domain.user.entity.UserStatus;
 import com.zerorisk.project.domain.user.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -32,6 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 .filter(jwtTokenProvider::validateToken)
                 .map(jwtTokenProvider::getUserId)
                 .flatMap(userRepository::findById)
+                .filter(user -> user.getStatus() == UserStatus.ACTIVE)
                 .ifPresent(this::setAuthentication);
 
         filterChain.doFilter(request, response);
