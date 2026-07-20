@@ -104,4 +104,13 @@ public class User {
     public void addActivityScore(int score) {
         this.activityScore += score;
     }
+
+    public static User createOAuthUser(String email, String nickname, OAuthProvider provider) {
+        return User.builder()
+                .email(email)
+                .nickname(nickname)
+                .password(null)
+                .oauthProvider(provider)
+                .build();
+    }
 }
