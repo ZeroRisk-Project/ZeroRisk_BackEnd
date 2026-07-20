@@ -39,13 +39,15 @@ public class CustomOAuth2UserService extends OidcUserService {
             return new OAuthUserInfo(
                     (String) claims.get("email"),
                     (String) claims.get("name"),
-                    OAuthProvider.GOOGLE);
+                    OAuthProvider.GOOGLE,
+                    (String) claims.get("sub"));
         }
         if ("kakao".equals(registrationId)) {
             return new OAuthUserInfo(
                     (String) claims.get("email"),
                     (String) claims.get("nickname"),
-                    OAuthProvider.KAKAO);
+                    OAuthProvider.KAKAO,
+                    (String) claims.get("sub"));
         }
         throw new IllegalArgumentException("지원하지 않는 OAuth 제공자입니다: " + registrationId);
     }
@@ -53,7 +55,11 @@ public class CustomOAuth2UserService extends OidcUserService {
     private User findOrCreateUser(OAuthUserInfo userInfo) {
         return userRepository.findByEmail(userInfo.email())
                 .orElseGet(() -> userRepository.save(
-                        User.createOAuthUser(userInfo.email(), resolveNickname(userInfo), userInfo.provider())));
+                        User.createOAuthUser(userInfo.email(), resolveNickname(userInfo), userInfo.provider(),
+                                userInfo.providerId())));
+    }
+
+    private record OAuthUserInfo(String email, String nickname, OAuthProvider provider, String providerId) {
     }
 
     private String resolveNickname(OAuthUserInfo userInfo) {
@@ -74,8 +80,5 @@ public class CustomOAuth2UserService extends OidcUserService {
             return "";
         }
         return value.length() > maxLength ? value.substring(0, maxLength) : value;
-    }
-
-    private record OAuthUserInfo(String email, String nickname, OAuthProvider provider) {
     }
 }
