@@ -50,6 +50,7 @@ jobs:
             sudo docker compose stop backend
             sudo docker compose rm -f backend
             sudo docker compose up -d --build backend
+            sudo docker builder prune -f --filter "until=24h"
 
       - name: Health Check
         run: |
