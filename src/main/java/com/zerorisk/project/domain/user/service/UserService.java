@@ -5,10 +5,12 @@ import com.zerorisk.project.domain.user.dto.NicknameCheckResponse;
 import com.zerorisk.project.domain.user.dto.SignupRequest;
 import com.zerorisk.project.domain.user.dto.SignupResponse;
 import com.zerorisk.project.domain.user.dto.UpdateProfileRequest;
+import com.zerorisk.project.domain.user.dto.WithdrawRequest;
 import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.repository.UserRepository;
 import com.zerorisk.project.global.exception.DuplicateEmailException;
 import com.zerorisk.project.global.exception.DuplicateNicknameException;
+import com.zerorisk.project.global.exception.InvalidCredentialsException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -70,5 +72,19 @@ public class UserService {
 
         user.updateProfile(request.nickname(), request.profileImageUrl());
         return MyProfileResponse.from(user);
+    }
+
+    @Transactional
+    public void withdraw(Long userId, WithdrawRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (user.getPassword() != null) {
+            if (request.password() == null || !passwordEncoder.matches(request.password(), user.getPassword())) {
+                throw new InvalidCredentialsException();
+            }
+        }
+
+        user.withdraw();
     }
 }
