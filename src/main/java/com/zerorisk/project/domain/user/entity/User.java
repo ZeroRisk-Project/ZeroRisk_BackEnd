@@ -69,14 +69,18 @@ public class User {
     @Column(name = "CREATED_AT", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "OAUTH_PROVIDER_ID", length = 50)
+    private String oauthProviderId;
+
     @Builder
-    private User(String email, String nickname, String password, OAuthProvider oauthProvider) {
+    private User(String email, String nickname, String password, OAuthProvider oauthProvider, String oauthProviderId) {
         this.email = email;
         this.nickname = nickname;
         this.password = password;
         this.userRole = UserRole.USER;
         this.status = UserStatus.ACTIVE;
         this.oauthProvider = oauthProvider;
+        this.oauthProviderId = oauthProviderId;
         this.activityScore = 0;
         this.userLevel = 1;
         this.createdAt = LocalDateTime.now();
@@ -111,12 +115,13 @@ public class User {
         this.activityScore += score;
     }
 
-    public static User createOAuthUser(String email, String nickname, OAuthProvider provider) {
+    public static User createOAuthUser(String email, String nickname, OAuthProvider provider, String providerId) {
         return User.builder()
                 .email(email)
                 .nickname(nickname)
                 .password(null)
                 .oauthProvider(provider)
+                .oauthProviderId(providerId)
                 .build();
     }
 }
