@@ -7,7 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
-import com.zerorisk.project.domain.openbanking.dto.AccountRegisterResponse;
+import com.zerorisk.project.domain.openbanking.dto.UserInfoResponse;
 import com.zerorisk.project.domain.openbanking.dto.BalanceInquiryResponse;
 import com.zerorisk.project.domain.openbanking.dto.OpenBankingTokenResponse;
 
@@ -32,26 +32,36 @@ public class MockOpenBankingClient implements OpenBankingClient {
     }
 
     @Override
-    public AccountRegisterResponse registerAccount(String accessToken, String userSeqNo) {
+    public UserInfoResponse getUserInfo(String accessToken, String userSeqNo) {
         String fintechUseNum = generateFintechUseNum();
         String tranId = generateTranId();
 
-        var account = new AccountRegisterResponse.RegisteredAccount(
+        var account = new UserInfoResponse.RegisteredAccount(
                 fintechUseNum,
                 "모의계좌",
                 "097",
+                "0000000",
                 "테스트뱅크",
+                "",
                 "110***1234",
+                "1",
                 "박종권",
-                "1");
+                "P",
+                "1",
+                "Y",
+                nowFormatted(),
+                "N",
+                "");
 
-        return new AccountRegisterResponse(
+        return new UserInfoResponse(
                 tranId,
                 nowFormatted(),
-                tranId,
-                nowDate(),
                 "A0000",
-                "성공",
+                "",
+                userSeqNo,
+                "mock_ci_" + random.nextInt(1_000_000),
+                "박종권",
+                "1",
                 List.of(account));
     }
 
