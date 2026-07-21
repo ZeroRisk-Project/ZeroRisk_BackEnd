@@ -34,9 +34,9 @@ public class OpenBankingService {
         }
 
         var tokenResponse = openBankingClient.exchangeToken(authorizationCode);
-        var registerResponse = openBankingClient.registerAccount(tokenResponse.access_token(),
-                tokenResponse.user_seq_no());
-        var account = registerResponse.res_list().get(0);
+
+        var userInfoResponse = openBankingClient.getUserInfo(tokenResponse.access_token(), tokenResponse.user_seq_no());
+        var account = userInfoResponse.res_list().get(0);
 
         OpenBankingAuth auth = OpenBankingAuth.builder()
                 .userId(userId)
