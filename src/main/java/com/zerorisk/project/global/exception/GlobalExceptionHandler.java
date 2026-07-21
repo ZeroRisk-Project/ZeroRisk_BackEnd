@@ -7,6 +7,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.zerorisk.project.domain.openbanking.exception.OpenBankingException;
+
 import jakarta.validation.ConstraintViolationException;
 
 @Slf4j
@@ -134,5 +136,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CommentAccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleCommentAccessDenied(CommentAccessDeniedException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse("COMMENT_002", e.getMessage()));
+    }
+
+    @ExceptionHandler(OpenBankingException.class)
+    public ResponseEntity<ErrorResponse> handleOpenBanking(OpenBankingException e) {
+        return ResponseEntity.status(e.getErrorCode().getStatus())
+                .body(new ErrorResponse(e.getErrorCode().getCode(), e.getMessage()));
     }
 }
