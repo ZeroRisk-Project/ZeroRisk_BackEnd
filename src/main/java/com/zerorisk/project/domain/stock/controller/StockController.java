@@ -1,3 +1,5 @@
+package com.zerorisk.project.domain.stock.controller;
+
 import com.zerorisk.project.domain.stock.dto.RankingType;
 import com.zerorisk.project.domain.stock.dto.StockDetailResponse;
 import com.zerorisk.project.domain.stock.dto.StockRankingResponse;
