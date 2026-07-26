@@ -50,4 +50,8 @@ public class CompetitionParticipant {
         this.returnRate = BigDecimal.ZERO;
         this.joinedAt = LocalDateTime.now();
     }
+
+    public void finalizeRank(Integer rankPosition) {
+        this.rankPosition = rankPosition;
+    }
 }

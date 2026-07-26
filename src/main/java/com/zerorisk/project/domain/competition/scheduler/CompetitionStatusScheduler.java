@@ -21,6 +21,7 @@ public class CompetitionStatusScheduler {
     private final CompetitionService competitionService;
 
     @Scheduled(cron = "0 */10 * * * *")
+    // @Scheduled(cron = "0 * * * * *") // 테스트용: 매분
     @Transactional
     public void transitionCompetitionStatus() {
         startScheduledCompetitions();
