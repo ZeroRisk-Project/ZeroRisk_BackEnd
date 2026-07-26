@@ -1,5 +1,6 @@
 package com.zerorisk.project.domain.competition.controller;
 
+import com.zerorisk.project.domain.competition.dto.CompetitionArchiveResponse;
 import com.zerorisk.project.domain.competition.dto.CompetitionDetailResponse;
 import com.zerorisk.project.domain.competition.dto.CompetitionRankingResponse;
 import com.zerorisk.project.domain.competition.dto.CompetitionSummaryResponse;
@@ -44,5 +45,10 @@ public class CompetitionController {
     @GetMapping("/{competitionId}/rankings")
     public List<CompetitionRankingResponse> getRankings(@PathVariable Long competitionId) {
         return competitionService.getRankings(competitionId);
+    }
+
+    @GetMapping("/{competitionId}/archive")
+    public CompetitionArchiveResponse getArchive(@PathVariable Long competitionId) {
+        return competitionService.getArchive(competitionId);
     }
 }
