@@ -7,6 +7,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.zerorisk.project.domain.competition.exception.CompetitionException;
 import com.zerorisk.project.domain.openbanking.exception.OpenBankingException;
 
 import jakarta.validation.ConstraintViolationException;
@@ -142,5 +143,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleOpenBanking(OpenBankingException e) {
         return ResponseEntity.status(e.getErrorCode().getStatus())
                 .body(new ErrorResponse(e.getErrorCode().getCode(), e.getMessage()));
+    }
+
+    @ExceptionHandler(CompetitionException.class)
+    public ResponseEntity<ErrorResponse> handleCompetition(CompetitionException e) {
+        return ResponseEntity.status(e.getErrorCode().getStatus())
+                .body(new ErrorResponse(e.getErrorCode().getCode(), e.getMessage()));
+    }
+
+    @ExceptionHandler(org.springframework.security.authorization.AuthorizationDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAuthorizationDenied(
+            org.springframework.security.authorization.AuthorizationDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse("ADMIN_001", "관리자 권한이 필요합니다."));
     }
 }
