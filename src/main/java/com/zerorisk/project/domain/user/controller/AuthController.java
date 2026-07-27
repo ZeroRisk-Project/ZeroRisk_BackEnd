@@ -4,8 +4,11 @@ import com.zerorisk.project.domain.auth.dto.LoginRequest;
 import com.zerorisk.project.domain.auth.dto.LoginResponse;
 import com.zerorisk.project.domain.auth.service.AuthService;
 import com.zerorisk.project.domain.user.dto.NicknameCheckResponse;
+import com.zerorisk.project.domain.user.dto.SendCodeRequest;
 import com.zerorisk.project.domain.user.dto.SignupRequest;
 import com.zerorisk.project.domain.user.dto.SignupResponse;
+import com.zerorisk.project.domain.user.dto.VerifyCodeRequest;
+import com.zerorisk.project.domain.user.service.EmailVerificationService;
 import com.zerorisk.project.domain.user.service.UserService;
 import com.zerorisk.project.global.exception.InvalidRefreshTokenException;
 import com.zerorisk.project.global.security.CookieUtil;
@@ -37,6 +40,7 @@ public class AuthController {
     private final UserService userService;
     private final AuthService authService;
     private final CookieUtil cookieUtil;
+    private final EmailVerificationService emailVerificationService;
 
     @PostMapping("/signup")
     public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
@@ -88,5 +92,15 @@ public class AuthController {
     public NicknameCheckResponse checkNickname(
             @RequestParam @NotBlank @Size(max = 12) String nickname) {
         return userService.checkNickname(nickname);
+    }
+
+    @PostMapping("/send-code")
+    public void sendCode(@Valid @RequestBody SendCodeRequest request) {
+        emailVerificationService.sendVerificationCode(request.email());
+    }
+
+    @PostMapping("/verify-code")
+    public void verifyCode(@Valid @RequestBody VerifyCodeRequest request) {
+        emailVerificationService.verifyCode(request.email(), request.code());
     }
 }
