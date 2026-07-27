@@ -10,6 +10,7 @@ import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.repository.UserRepository;
 import com.zerorisk.project.global.exception.DuplicateEmailException;
 import com.zerorisk.project.global.exception.DuplicateNicknameException;
+import com.zerorisk.project.global.exception.EmailNotVerifiedException;
 import com.zerorisk.project.global.exception.InvalidCredentialsException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
 
@@ -24,9 +25,13 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailVerificationService emailVerificationService;
 
     @Transactional
     public SignupResponse signup(SignupRequest request) {
+        if (!emailVerificationService.isVerified(request.email())) {
+            throw new EmailNotVerifiedException();
+        }
         if (userRepository.existsByEmail(request.email())) {
             throw new DuplicateEmailException();
         }
@@ -43,6 +48,7 @@ public class UserService {
                 .build();
 
         User savedUser = userRepository.save(user);
+        emailVerificationService.clearVerification(request.email());
 
         return new SignupResponse(savedUser.getId(), savedUser.getEmail(), savedUser.getNickname());
     }
