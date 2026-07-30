@@ -1,3 +1,4 @@
+// 수정 후
 package com.zerorisk.project.global.security;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -10,10 +11,14 @@ public class CookieUtil {
     @Value("${cookie.domain:}")
     private String domain;
 
+    // 배포(https)는 true, 로컬(http)은 application-local.properties에서 false로 오버라이드
+    @Value("${cookie.secure:true}")
+    private boolean secure;
+
     public ResponseCookie create(String name, String value, long maxAgeSeconds) {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, value)
                 .httpOnly(true)
-                .secure(true)
+                .secure(secure)
                 .sameSite("Strict")
                 .path("/")
                 .maxAge(maxAgeSeconds);
@@ -27,7 +32,7 @@ public class CookieUtil {
     public ResponseCookie delete(String name) {
         ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, "")
                 .httpOnly(true)
-                .secure(true)
+                .secure(secure)
                 .sameSite("Strict")
                 .path("/")
                 .maxAge(0);
