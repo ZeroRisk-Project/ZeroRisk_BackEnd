@@ -3,6 +3,7 @@ package com.zerorisk.project.global.security.oauth;
 import com.zerorisk.project.domain.user.entity.OAuthProvider;
 import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.repository.UserRepository;
+import java.security.SecureRandom;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
@@ -62,23 +63,14 @@ public class CustomOAuth2UserService extends OidcUserService {
     private record OAuthUserInfo(String email, String nickname, OAuthProvider provider, String providerId) {
     }
 
+    private static final SecureRandom RANDOM = new SecureRandom();
+
     private String resolveNickname(OAuthUserInfo userInfo) {
-        String base = userInfo.nickname() != null ? userInfo.nickname() : "user";
-        String candidate = truncate(base, 12);
+        String candidate;
+        do {
+            candidate = "user" + String.format("%08d", RANDOM.nextInt(100_000_000));
+        } while (userRepository.existsByNickname(candidate));
 
-        if (!userRepository.existsByNickname(candidate)) {
-            return candidate;
-        }
-
-        String suffix = String.valueOf(System.currentTimeMillis() % 10000);
-        String truncatedBase = truncate(base, 12 - suffix.length());
-        return truncatedBase + suffix;
-    }
-
-    private String truncate(String value, int maxLength) {
-        if (maxLength <= 0) {
-            return "";
-        }
-        return value.length() > maxLength ? value.substring(0, maxLength) : value;
+        return candidate;
     }
 }
