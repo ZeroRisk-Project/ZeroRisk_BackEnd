@@ -20,6 +20,7 @@ import com.zerorisk.project.domain.openbanking.dto.OpenBankingTokenResponse;
 public class MockOpenBankingClient implements OpenBankingClient {
 
     private final SecureRandom random = new SecureRandom();
+    private static final BigDecimal MOCK_BALANCE = BigDecimal.valueOf(10_000_000);
 
     @Override
     public OpenBankingTokenResponse exchangeToken(String authorizationCode) {
@@ -68,7 +69,6 @@ public class MockOpenBankingClient implements OpenBankingClient {
     @Override
     public BalanceInquiryResponse inquireBalance(String accessToken, String fintechUseNum) {
         String tranId = generateTranId();
-        BigDecimal mockBalance = BigDecimal.valueOf(500_000 + random.nextInt(9_500_000));
 
         return new BalanceInquiryResponse(
                 tranId,
@@ -78,8 +78,8 @@ public class MockOpenBankingClient implements OpenBankingClient {
                 "성공",
                 "테스트뱅크",
                 fintechUseNum,
-                mockBalance.toPlainString(),
-                mockBalance.toPlainString(),
+                MOCK_BALANCE.toPlainString(),
+                MOCK_BALANCE.toPlainString(),
                 "1",
                 "테스트예금");
     }

@@ -3,6 +3,7 @@ package com.zerorisk.project.domain.openbanking.controller;
 import com.zerorisk.project.domain.openbanking.dto.AuthenticateAccountResponse;
 import com.zerorisk.project.domain.openbanking.dto.BalanceLimitResponse;
 import com.zerorisk.project.domain.openbanking.dto.ChargeRequest;
+import com.zerorisk.project.domain.openbanking.dto.OpenBankingAuthResponse;
 import com.zerorisk.project.domain.openbanking.service.OpenBankingService;
 import com.zerorisk.project.global.security.CurrentUserId;
 import jakarta.validation.Valid;
@@ -21,6 +22,11 @@ public class OpenBankingController {
             @CurrentUserId Long userId,
             @RequestParam(required = false, defaultValue = "mock-code") String code) {
         return openBankingService.authenticateAccount(userId, code);
+    }
+
+    @GetMapping("/auths")
+    public OpenBankingAuthResponse getMyAuth(@CurrentUserId Long userId) {
+        return openBankingService.getMyAuth(userId);
     }
 
     @GetMapping("/balance-limit")

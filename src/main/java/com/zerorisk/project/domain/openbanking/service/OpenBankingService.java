@@ -7,6 +7,7 @@ import com.zerorisk.project.domain.openbanking.dto.AuthenticateAccountResponse;
 import com.zerorisk.project.domain.openbanking.dto.BalanceLimitResponse;
 import com.zerorisk.project.domain.openbanking.dto.MonthlyChargeSettingRequest;
 import com.zerorisk.project.domain.openbanking.dto.MonthlyChargeSettingResponse;
+import com.zerorisk.project.domain.openbanking.dto.OpenBankingAuthResponse;
 import com.zerorisk.project.domain.openbanking.entity.MonthlyChargeSetting;
 import com.zerorisk.project.domain.openbanking.entity.OpenBankingAuth;
 import com.zerorisk.project.domain.openbanking.exception.OpenBankingErrorCode;
@@ -24,8 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class OpenBankingService {
-
-    private static final BigDecimal MAX_CHARGE_PER_REQUEST = BigDecimal.valueOf(1_000_000);
 
     private final OpenBankingAuthRepository openBankingAuthRepository;
     private final MonthlyChargeSettingRepository monthlyChargeSettingRepository;
@@ -63,6 +62,13 @@ public class OpenBankingService {
         log.info("오픈뱅킹 계좌 인증 완료 - userId: {}, fintechUseNum: [REDACTED]", userId);
 
         return new AuthenticateAccountResponse(account.bank_name(), account.account_num_masked());
+    }
+
+    public OpenBankingAuthResponse getMyAuth(Long userId) {
+        OpenBankingAuth auth = openBankingAuthRepository.findByUserId(userId)
+                .orElseThrow(() -> new OpenBankingException(OpenBankingErrorCode.AUTH_NOT_FOUND));
+
+        return new OpenBankingAuthResponse(auth.getBankName(), auth.getAccountNumMasked(), auth.getVerifiedAt());
     }
 
     public BalanceLimitResponse getAvailableChargeAmount(Long userId) {
@@ -105,9 +111,8 @@ public class OpenBankingService {
         BigDecimal actualBalance = new BigDecimal(balanceResponse.balance_amt());
 
         BigDecimal remaining = actualBalance.subtract(auth.getTotalReceivedPoints());
-        BigDecimal cappedByPolicy = remaining.min(MAX_CHARGE_PER_REQUEST);
 
-        return cappedByPolicy.max(BigDecimal.ZERO);
+        return remaining.max(BigDecimal.ZERO);
     }
 
     @Transactional

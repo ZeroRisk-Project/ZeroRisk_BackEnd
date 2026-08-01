@@ -3,6 +3,7 @@ package com.zerorisk.project.domain.account.repository;
 import com.zerorisk.project.domain.account.entity.Account;
 import com.zerorisk.project.domain.account.entity.AccountType;
 import jakarta.persistence.LockModeType;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -15,4 +16,6 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findBasicAccountByUserIdForUpdate(java.lang.Long userId);
 
     Optional<Account> findByUserIdAndAccountType(Long userId, AccountType accountType);
+
+    List<Account> findByUserId(Long userId);
 }
