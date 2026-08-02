@@ -6,7 +6,8 @@ public record MyProfileResponse(
         String nickname,
         String profileImageUrl,
         Integer activityScore,
-        Integer userLevel) {
+        Integer userLevel,
+        String userRole) {
     public static MyProfileResponse from(com.zerorisk.project.domain.user.entity.User user) {
         return new MyProfileResponse(
                 user.getId(),
@@ -14,6 +15,7 @@ public record MyProfileResponse(
                 user.getNickname(),
                 user.getProfileImageUrl(),
                 user.getActivityScore(),
-                user.getUserLevel());
+                user.getUserLevel(),
+                user.getUserRole().name());
     }
 }
