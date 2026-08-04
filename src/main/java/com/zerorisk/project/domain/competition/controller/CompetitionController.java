@@ -5,6 +5,8 @@ import com.zerorisk.project.domain.competition.dto.CompetitionDetailResponse;
 import com.zerorisk.project.domain.competition.dto.CompetitionRankingResponse;
 import com.zerorisk.project.domain.competition.dto.CompetitionSummaryResponse;
 import com.zerorisk.project.domain.competition.dto.JoinCompetitionResponse;
+import com.zerorisk.project.domain.competition.dto.JoinStatusResponse;
+import com.zerorisk.project.domain.competition.dto.MyJoinedCompetitionsResponse;
 import com.zerorisk.project.domain.competition.service.CompetitionService;
 import com.zerorisk.project.global.security.CurrentUserId;
 
@@ -30,6 +32,11 @@ public class CompetitionController {
         return competitionService.getCompetitions(pageable);
     }
 
+    @GetMapping("/my")
+    public MyJoinedCompetitionsResponse getMyJoinedCompetitions(@CurrentUserId Long userId) {
+        return competitionService.getMyJoinedCompetitions(userId);
+    }
+
     @GetMapping("/{competitionId}")
     public CompetitionDetailResponse getCompetitionDetail(@PathVariable Long competitionId) {
         return competitionService.getCompetitionDetail(competitionId);
@@ -40,6 +47,13 @@ public class CompetitionController {
             @PathVariable Long competitionId,
             @CurrentUserId Long userId) {
         return competitionService.joinCompetition(competitionId, userId);
+    }
+
+    @GetMapping("/{competitionId}/join-status")
+    public JoinStatusResponse getJoinStatus(
+            @PathVariable Long competitionId,
+            @CurrentUserId Long userId) {
+        return new JoinStatusResponse(competitionService.isJoined(competitionId, userId));
     }
 
     @GetMapping("/{competitionId}/rankings")

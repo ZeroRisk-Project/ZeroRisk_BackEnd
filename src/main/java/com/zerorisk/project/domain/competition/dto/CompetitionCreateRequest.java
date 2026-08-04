@@ -8,15 +8,15 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record CompetitionCreateRequest(
-        @NotBlank String title,
+                @NotBlank String title,
 
-        String description,
+                String description,
 
-        @NotNull @Future LocalDateTime startAt,
+                @NotNull @Future LocalDateTime startAt,
 
-        @NotNull @Future LocalDateTime endAt,
+                @NotNull @Future LocalDateTime endAt,
 
-        @NotNull @DecimalMin(value = "1", message = "시드머니는 1원 이상이어야 합니다.") BigDecimal seedMoney,
+                @NotNull @DecimalMin(value = "1", message = "시드머니는 1원 이상이어야 합니다.") BigDecimal seedMoney,
 
-        @NotNull Boolean isPublic) {
+                @NotNull Boolean isPublic) {
 }
