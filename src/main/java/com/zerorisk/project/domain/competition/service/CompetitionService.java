@@ -10,6 +10,7 @@ import com.zerorisk.project.domain.competition.dto.CompetitionRankingResponse;
 import com.zerorisk.project.domain.competition.dto.CompetitionSummaryResponse;
 import com.zerorisk.project.domain.competition.dto.CompetitionUpdateRequest;
 import com.zerorisk.project.domain.competition.dto.JoinCompetitionResponse;
+import com.zerorisk.project.domain.competition.dto.MyJoinedCompetitionsResponse;
 import com.zerorisk.project.domain.competition.dto.MyPrizeHistoryResponse;
 import com.zerorisk.project.domain.competition.entity.Competition;
 import com.zerorisk.project.domain.competition.entity.CompetitionParticipant;
@@ -17,6 +18,7 @@ import com.zerorisk.project.domain.competition.entity.CompetitionStatus;
 import com.zerorisk.project.domain.competition.entity.PrizeHistory;
 import com.zerorisk.project.domain.competition.exception.CompetitionErrorCode;
 import com.zerorisk.project.domain.competition.exception.CompetitionException;
+import com.zerorisk.project.domain.competition.repository.CompetitionParticipantCountProjection;
 import com.zerorisk.project.domain.competition.repository.CompetitionParticipantRepository;
 import com.zerorisk.project.domain.competition.repository.CompetitionRankingProjection;
 import com.zerorisk.project.domain.competition.repository.CompetitionRankingRepository;
@@ -32,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -46,8 +49,24 @@ public class CompetitionService {
         private final PrizeHistoryRepository prizeHistoryRepository;
 
         public Page<CompetitionSummaryResponse> getCompetitions(Pageable pageable) {
-                return competitionRepository.findByIsPublicTrue(pageable)
-                                .map(CompetitionSummaryResponse::from);
+                Page<Competition> competitions = competitionRepository.findByIsPublicTrue(pageable);
+
+                List<Long> competitionIds = competitions.getContent().stream()
+                                .map(Competition::getId)
+                                .toList();
+
+                Map<Long, Long> participantCountMap = competitionIds.isEmpty()
+                                ? Map.of()
+                                : competitionParticipantRepository.countByCompetitionIds(competitionIds).stream()
+                                                .collect(Collectors.toMap(
+                                                                CompetitionParticipantCountProjection::getCompetitionId,
+                                                                CompetitionParticipantCountProjection::getCount));
+
+                return competitions.map(competition -> new CompetitionSummaryResponse(
+                                competition.getId(), competition.getTitle(),
+                                competition.getStartAt(), competition.getEndAt(),
+                                competition.getStatus(), competition.getSeedMoney(),
+                                participantCountMap.getOrDefault(competition.getId(), 0L)));
         }
 
         public CompetitionDetailResponse getCompetitionDetail(Long competitionId) {
@@ -90,6 +109,10 @@ public class CompetitionService {
                 competitionParticipantRepository.save(participant);
 
                 return new JoinCompetitionResponse(participant.getId(), competitionAccount.getId());
+        }
+
+        public boolean isJoined(Long competitionId, Long userId) {
+                return competitionParticipantRepository.findByCompetitionIdAndUserId(competitionId, userId).isPresent();
         }
 
         public List<CompetitionRankingResponse> getRankings(Long competitionId) {
@@ -218,4 +241,12 @@ public class CompetitionService {
                                 competition.getId(), competition.getTitle(),
                                 competition.getStartAt(), competition.getEndAt(), entries);
         }
+
+        public MyJoinedCompetitionsResponse getMyJoinedCompetitions(Long userId) {
+                List<Long> ids = competitionParticipantRepository.findByUserId(userId).stream()
+                                .map(CompetitionParticipant::getCompetitionId)
+                                .toList();
+                return new MyJoinedCompetitionsResponse(ids);
+        }
+
 }

@@ -82,7 +82,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/webhooks/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/competitions/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/competitions/my").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/competitions").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/competitions/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/competitions/*/rankings").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/competitions/*/archive").permitAll()
                         // 커뮤니티 [공개] 조회 API - 로그인 없이도 접근 가능해야 함
                         .requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/**").permitAll()
                         .anyRequest().authenticated())

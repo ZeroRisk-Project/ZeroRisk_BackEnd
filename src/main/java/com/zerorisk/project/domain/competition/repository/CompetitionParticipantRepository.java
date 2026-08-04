@@ -24,4 +24,14 @@ public interface CompetitionParticipantRepository extends JpaRepository<Competit
             ORDER BY cp.RANK_POSITION ASC
             """, nativeQuery = true)
     List<CompetitionArchiveProjection> findArchiveByCompetitionId(@Param("competitionId") Long competitionId);
+
+    List<CompetitionParticipant> findByUserId(Long userId);
+
+    @Query("""
+            SELECT cp.competitionId AS competitionId, COUNT(cp) AS count
+            FROM CompetitionParticipant cp
+            WHERE cp.competitionId IN :competitionIds
+            GROUP BY cp.competitionId
+            """)
+    List<CompetitionParticipantCountProjection> countByCompetitionIds(@Param("competitionIds") List<Long> competitionIds);
 }
