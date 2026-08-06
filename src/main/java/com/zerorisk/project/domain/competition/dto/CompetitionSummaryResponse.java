@@ -11,5 +11,6 @@ public record CompetitionSummaryResponse(
         LocalDateTime endAt,
         CompetitionStatus status,
         BigDecimal seedMoney,
-        Long participantCount) {
+        Long participantCount,
+        Integer maxParticipants) {
 }

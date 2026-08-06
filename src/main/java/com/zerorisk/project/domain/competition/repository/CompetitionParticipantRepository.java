@@ -27,6 +27,8 @@ public interface CompetitionParticipantRepository extends JpaRepository<Competit
 
     List<CompetitionParticipant> findByUserId(Long userId);
 
+    long countByCompetitionId(Long competitionId);
+
     @Query("""
             SELECT cp.competitionId AS competitionId, COUNT(cp) AS count
             FROM CompetitionParticipant cp

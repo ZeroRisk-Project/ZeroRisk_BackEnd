@@ -46,12 +46,15 @@ public class Competition {
     @Column(name = "CREATED_BY", nullable = false)
     private Long createdBy;
 
+    @Column(name = "MAX_PARTICIPANTS")
+    private Integer maxParticipants;
+
     @Column(name = "CREATED_AT", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Builder
     private Competition(String title, String description, LocalDateTime startAt, LocalDateTime endAt,
-            BigDecimal seedMoney, Boolean isPublic, Long createdBy) {
+            BigDecimal seedMoney, Boolean isPublic, Long createdBy, Integer maxParticipants) {
         this.title = title;
         this.description = description;
         this.startAt = startAt;
@@ -60,6 +63,7 @@ public class Competition {
         this.seedMoney = seedMoney;
         this.isPublic = isPublic;
         this.createdBy = createdBy;
+        this.maxParticipants = maxParticipants;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -72,7 +76,7 @@ public class Competition {
     }
 
     public boolean isJoinable() {
-        return this.status == CompetitionStatus.SCHEDULED || this.status == CompetitionStatus.ONGOING;
+        return this.status == CompetitionStatus.SCHEDULED;
     }
 
     public void updateInfo(String title, String description, LocalDateTime startAt, LocalDateTime endAt,

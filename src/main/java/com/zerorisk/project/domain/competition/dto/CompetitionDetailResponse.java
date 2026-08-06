@@ -13,11 +13,12 @@ public record CompetitionDetailResponse(
         LocalDateTime endAt,
         CompetitionStatus status,
         BigDecimal seedMoney,
-        boolean joinable) {
+        boolean joinable,
+        Integer maxParticipants) {
     public static CompetitionDetailResponse from(Competition competition) {
         return new CompetitionDetailResponse(
                 competition.getId(), competition.getTitle(), competition.getDescription(),
                 competition.getStartAt(), competition.getEndAt(), competition.getStatus(),
-                competition.getSeedMoney(), competition.isJoinable());
+                competition.getSeedMoney(), competition.isJoinable(), competition.getMaxParticipants());
     }
 }
