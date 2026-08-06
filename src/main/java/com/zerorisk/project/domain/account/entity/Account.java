@@ -26,6 +26,9 @@ public class Account {
     @Column(name = "BALANCE", nullable = false)
     private BigDecimal balance;
 
+    @Column(name = "INITIAL_SEED_MONEY", nullable = false)
+    private BigDecimal initialSeedMoney;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "ACCOUNT_TYPE", nullable = false, length = 15)
     private AccountType accountType;
@@ -40,6 +43,7 @@ public class Account {
     private Account(Long userId, AccountType accountType, Long competitionId) {
         this.userId = userId;
         this.balance = BigDecimal.ZERO;
+        this.initialSeedMoney = BigDecimal.ZERO;
         this.accountType = accountType;
         this.competitionId = competitionId;
         this.createdAt = LocalDateTime.now();
@@ -47,5 +51,10 @@ public class Account {
 
     public void addBalance(BigDecimal amount) {
         this.balance = this.balance.add(amount);
+    }
+
+    public void addSeedMoney(BigDecimal amount) {
+        this.balance = this.balance.add(amount);
+        this.initialSeedMoney = this.initialSeedMoney.add(amount);
     }
 }
