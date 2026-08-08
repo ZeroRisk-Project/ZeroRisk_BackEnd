@@ -1,9 +1,12 @@
 package com.zerorisk.project.domain.stock.controller;
 
+import com.zerorisk.project.domain.stock.dto.ChartCandleResponse;
+import com.zerorisk.project.domain.stock.dto.ChartInterval;
 import com.zerorisk.project.domain.stock.dto.RankingType;
 import com.zerorisk.project.domain.stock.dto.StockDetailResponse;
 import com.zerorisk.project.domain.stock.dto.StockRankingResponse;
 import com.zerorisk.project.domain.stock.dto.StockSummaryResponse;
+import com.zerorisk.project.domain.stock.service.StockChartService;
 import com.zerorisk.project.domain.stock.service.StockQueryService;
 import com.zerorisk.project.domain.stock.service.StockRankingService;
 import com.zerorisk.project.domain.stock.service.StockSearchService;
@@ -26,6 +29,7 @@ public class StockController {
     private final StockQueryService stockQueryService;
     private final StockSearchService stockSearchService;
     private final StockRankingService stockRankingService;
+    private final StockChartService stockChartService;
 
     @GetMapping("/search")
     public ResponseEntity<Page<StockSummaryResponse>> search(
@@ -39,6 +43,13 @@ public class StockController {
             @RequestParam RankingType type,
             @RequestParam(defaultValue = "20") int count) {
         return ResponseEntity.ok(stockRankingService.getRankings(type, count));
+    }
+
+    @GetMapping("/{code}/chart")
+    public ResponseEntity<List<ChartCandleResponse>> getChart(
+            @PathVariable String code,
+            @RequestParam ChartInterval interval) {
+        return ResponseEntity.ok(stockChartService.getChart(code, interval));
     }
 
     @GetMapping("/{code}")
