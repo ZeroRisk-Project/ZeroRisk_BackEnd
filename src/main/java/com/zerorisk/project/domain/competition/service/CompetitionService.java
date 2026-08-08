@@ -192,10 +192,10 @@ public class CompetitionService {
         }
 
         public List<MyPrizeHistoryResponse> getMyPrizeHistory(Long userId) {
-                return prizeHistoryRepository.findByUserId(userId).stream()
-                                .map(h -> new MyPrizeHistoryResponse(
-                                                h.getCompetitionId(), h.getRankPosition(), h.getPrizeAmount(),
-                                                h.getPaidAt()))
+                return prizeHistoryRepository.findByUserIdWithCompetitionTitle(userId).stream()
+                                .map(p -> new MyPrizeHistoryResponse(
+                                                p.getCompetitionId(), p.getCompetitionTitle(),
+                                                p.getRankPosition(), p.getPrizeAmount(), p.getPaidAt()))
                                 .toList();
         }
 
