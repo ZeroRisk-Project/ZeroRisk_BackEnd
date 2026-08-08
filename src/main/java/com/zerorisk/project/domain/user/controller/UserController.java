@@ -1,6 +1,7 @@
 package com.zerorisk.project.domain.user.controller;
 
 import com.zerorisk.project.domain.auth.service.AuthService;
+import com.zerorisk.project.domain.user.dto.ChangePasswordRequest;
 import com.zerorisk.project.domain.user.dto.MyProfileResponse;
 import com.zerorisk.project.domain.user.dto.UpdateProfileRequest;
 import com.zerorisk.project.domain.user.dto.WithdrawRequest;
@@ -39,6 +40,13 @@ public class UserController {
             @CurrentUserId Long userId,
             @Valid @RequestBody UpdateProfileRequest request) {
         return userService.updateMyProfile(userId, request);
+    }
+
+    @PatchMapping("/password")
+    public void changePassword(
+            @CurrentUserId Long userId,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        userService.changePassword(userId, request);
     }
 
     @DeleteMapping

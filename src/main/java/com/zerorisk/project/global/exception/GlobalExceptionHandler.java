@@ -176,4 +176,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(e.getErrorCode().getStatus())
                 .body(new ErrorResponse(e.getErrorCode().getCode(), e.getMessage()));
     }
+
+    @ExceptionHandler(SocialAccountPasswordChangeException.class)
+    public ResponseEntity<ErrorResponse> handleSocialPasswordChange(SocialAccountPasswordChangeException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("AUTH_008", e.getMessage()));
+    }
 }
