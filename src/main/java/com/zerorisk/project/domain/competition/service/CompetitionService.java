@@ -108,7 +108,7 @@ public class CompetitionService {
                                 .accountType(AccountType.COMPETITION)
                                 .competitionId(competitionId)
                                 .build();
-                competitionAccount.addBalance(competition.getSeedMoney());
+                competitionAccount.addSeedMoney(competition.getSeedMoney());
                 accountRepository.save(competitionAccount);
 
                 CompetitionParticipant participant = CompetitionParticipant.builder()
