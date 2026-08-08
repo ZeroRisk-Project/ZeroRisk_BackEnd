@@ -11,6 +11,7 @@ import com.zerorisk.project.domain.competition.dto.CompetitionSummaryResponse;
 import com.zerorisk.project.domain.competition.dto.CompetitionUpdateRequest;
 import com.zerorisk.project.domain.competition.dto.JoinCompetitionResponse;
 import com.zerorisk.project.domain.competition.dto.MyJoinedCompetitionsResponse;
+import com.zerorisk.project.domain.competition.dto.CompetitionParticipantAdminResponse;
 import com.zerorisk.project.domain.competition.dto.MyPrizeHistoryResponse;
 import com.zerorisk.project.domain.competition.entity.Competition;
 import com.zerorisk.project.domain.competition.entity.CompetitionAllowedStock;
@@ -20,6 +21,7 @@ import com.zerorisk.project.domain.competition.entity.PrizeHistory;
 import com.zerorisk.project.domain.competition.exception.CompetitionErrorCode;
 import com.zerorisk.project.domain.competition.exception.CompetitionException;
 import com.zerorisk.project.domain.competition.repository.CompetitionAllowedStockRepository;
+import com.zerorisk.project.domain.competition.repository.CompetitionParticipantAdminProjection;
 import com.zerorisk.project.domain.competition.repository.CompetitionParticipantCountProjection;
 import com.zerorisk.project.domain.competition.repository.CompetitionParticipantRepository;
 import com.zerorisk.project.domain.competition.repository.CompetitionRankingProjection;
@@ -126,6 +128,19 @@ public class CompetitionService {
                 return competitionParticipantRepository.findByCompetitionIdAndUserId(competitionId, userId).isPresent();
         }
 
+        @Transactional
+        public void expelParticipant(Long competitionId, Long targetUserId) {
+                CompetitionParticipant participant = competitionParticipantRepository
+                                .findByCompetitionIdAndUserId(competitionId, targetUserId)
+                                .orElseThrow(() -> new CompetitionException(CompetitionErrorCode.NOT_FOUND));
+
+                Account account = accountRepository.findById(participant.getAccountId())
+                                .orElseThrow(() -> new CompetitionException(CompetitionErrorCode.NOT_FOUND));
+
+                account.zeroBalance();
+                competitionParticipantRepository.delete(participant);
+        }
+
         public List<CompetitionRankingResponse> getRankings(Long competitionId) {
                 if (!competitionRepository.existsById(competitionId)) {
                         throw new CompetitionException(CompetitionErrorCode.NOT_FOUND);
@@ -135,6 +150,17 @@ public class CompetitionService {
                                 .map(p -> new CompetitionRankingResponse(
                                                 p.getRankPosition(), p.getUserId(), p.getNickname(),
                                                 p.getReturnRate(), p.getTotalAsset()))
+                                .toList();
+        }
+
+        public List<CompetitionParticipantAdminResponse> getParticipantsForAdmin(Long competitionId) {
+                if (!competitionRepository.existsById(competitionId)) {
+                        throw new CompetitionException(CompetitionErrorCode.NOT_FOUND);
+                }
+                return competitionParticipantRepository.findParticipantsWithUserInfo(competitionId).stream()
+                                .map(p -> new CompetitionParticipantAdminResponse(
+                                                p.getUserId(), p.getNickname(), p.getEmail(),
+                                                p.getJoinedAt(), p.getReturnRate(), p.getTotalAsset()))
                                 .toList();
         }
 
@@ -177,7 +203,8 @@ public class CompetitionService {
 
                 competition.updateInfo(
                                 request.title(), request.description(),
-                                request.startAt(), request.endAt(), request.isPublic());
+                                request.startAt(), request.endAt(), request.isPublic(),
+                                request.maxParticipants());
         }
 
         @Transactional
