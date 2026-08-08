@@ -7,7 +7,8 @@ public record MyProfileResponse(
         String profileImageUrl,
         Integer activityScore,
         Integer userLevel,
-        String userRole) {
+        String userRole,
+        String oauthProvider) {
     public static MyProfileResponse from(com.zerorisk.project.domain.user.entity.User user) {
         return new MyProfileResponse(
                 user.getId(),
@@ -16,6 +17,7 @@ public record MyProfileResponse(
                 user.getProfileImageUrl(),
                 user.getActivityScore(),
                 user.getUserLevel(),
-                user.getUserRole().name());
+                user.getUserRole().name(),
+                user.getOauthProvider() != null ? user.getOauthProvider().name() : null);
     }
 }
