@@ -96,16 +96,12 @@ public class OpenBankingService {
         Account account = accountRepository.findBasicAccountByUserIdForUpdate(userId)
                 .orElseThrow(() -> new OpenBankingException(OpenBankingErrorCode.AUTH_NOT_FOUND));
 
-        account.addBalance(requestedAmount);
+        account.addSeedMoney(requestedAmount);
         auth.addReceivedPoints(requestedAmount);
 
         log.info("시드머니 충전 완료 - userId: {}, chargedAmount: {}", userId, requestedAmount);
     }
 
-    /**
-     * 실잔액은 이 메서드 스코프 안에서만 존재하고, 반환되는 순간 폐기됩니다.
-     * 절대 필드/DTO/로그에 실잔액 원본을 남기지 않습니다.
-     */
     private BigDecimal calculateAvailableAmount(OpenBankingAuth auth) {
         var balanceResponse = openBankingClient.inquireBalance("mock_access_token", auth.getFintechUseNum());
         BigDecimal actualBalance = new BigDecimal(balanceResponse.balance_amt());
