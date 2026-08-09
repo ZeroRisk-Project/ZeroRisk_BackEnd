@@ -25,10 +25,6 @@ public class AdminUserService {
     private final OpenBankingAuthRepository openBankingAuthRepository;
 
     public Page<AdminUserResponse> getUsers(String keyword, UserStatus status, Pageable pageable) {
-<<<<<<< Updated upstream
-        return userRepository.searchUsers(keyword, status, pageable)
-                .map(AdminUserResponse::from);
-=======
         Page<User> users = userRepository.searchUsers(keyword, status, pageable);
 
         List<Long> userIds = users.getContent().stream()
@@ -41,7 +37,6 @@ public class AdminUserService {
                         .collect(Collectors.toMap(OpenBankingAuth::getUserId, OpenBankingAuth::getAccountNumMasked));
 
         return users.map(user -> AdminUserResponse.from(user, accountNumMap.get(user.getId())));
->>>>>>> Stashed changes
     }
 
     @Transactional
