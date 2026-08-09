@@ -3,6 +3,7 @@ package com.zerorisk.project.domain.user.service;
 import com.zerorisk.project.domain.user.dto.AdminUserResponse;
 import com.zerorisk.project.domain.user.dto.UserSuspendRequest;
 import com.zerorisk.project.domain.user.entity.User;
+import com.zerorisk.project.domain.user.entity.UserStatus;
 import com.zerorisk.project.domain.user.repository.UserRepository;
 import com.zerorisk.project.global.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -17,8 +18,8 @@ public class AdminUserService {
 
     private final UserRepository userRepository;
 
-    public Page<AdminUserResponse> getUsers(Pageable pageable) {
-        return userRepository.findAll(pageable)
+    public Page<AdminUserResponse> getUsers(String keyword, UserStatus status, Pageable pageable) {
+        return userRepository.searchUsers(keyword, status, pageable)
                 .map(AdminUserResponse::from);
     }
 
