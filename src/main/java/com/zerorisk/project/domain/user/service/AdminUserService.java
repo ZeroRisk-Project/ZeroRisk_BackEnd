@@ -1,10 +1,16 @@
 package com.zerorisk.project.domain.user.service;
 
+import com.zerorisk.project.domain.openbanking.entity.OpenBankingAuth;
+import com.zerorisk.project.domain.openbanking.repository.OpenBankingAuthRepository;
 import com.zerorisk.project.domain.user.dto.AdminUserResponse;
 import com.zerorisk.project.domain.user.dto.UserSuspendRequest;
 import com.zerorisk.project.domain.user.entity.User;
+import com.zerorisk.project.domain.user.entity.UserStatus;
 import com.zerorisk.project.domain.user.repository.UserRepository;
 import com.zerorisk.project.global.exception.UserNotFoundException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,10 +22,21 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminUserService {
 
     private final UserRepository userRepository;
+    private final OpenBankingAuthRepository openBankingAuthRepository;
 
-    public Page<AdminUserResponse> getUsers(Pageable pageable) {
-        return userRepository.findAll(pageable)
-                .map(AdminUserResponse::from);
+    public Page<AdminUserResponse> getUsers(String keyword, UserStatus status, Pageable pageable) {
+        Page<User> users = userRepository.searchUsers(keyword, status, pageable);
+
+        List<Long> userIds = users.getContent().stream()
+                .map(User::getId)
+                .toList();
+
+        Map<Long, String> accountNumMap = userIds.isEmpty()
+                ? Map.of()
+                : openBankingAuthRepository.findByUserIdIn(userIds).stream()
+                        .collect(Collectors.toMap(OpenBankingAuth::getUserId, OpenBankingAuth::getAccountNumMasked));
+
+        return users.map(user -> AdminUserResponse.from(user, accountNumMap.get(user.getId())));
     }
 
     @Transactional
@@ -29,7 +46,11 @@ public class AdminUserService {
 
         user.suspend(request.suspendedUntil(), request.reason());
 
-        return AdminUserResponse.from(user);
+        String accountNumMasked = openBankingAuthRepository.findByUserId(userId)
+                .map(OpenBankingAuth::getAccountNumMasked)
+                .orElse(null);
+
+        return AdminUserResponse.from(user, accountNumMasked);
     }
 
     @Transactional
@@ -39,6 +60,10 @@ public class AdminUserService {
 
         user.unsuspend();
 
-        return AdminUserResponse.from(user);
+        String accountNumMasked = openBankingAuthRepository.findByUserId(userId)
+                .map(OpenBankingAuth::getAccountNumMasked)
+                .orElse(null);
+
+        return AdminUserResponse.from(user, accountNumMasked);
     }
 }

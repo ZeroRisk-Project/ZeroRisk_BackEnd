@@ -8,17 +8,25 @@ public record AdminUserResponse(
         Long id,
         String email,
         String nickname,
+        String profileImageUrl,
+        String userRole,
         UserStatus status,
         LocalDateTime suspendedUntil,
-        String suspensionReason) {
+        String suspensionReason,
+        LocalDateTime createdAt,
+        String accountNumMasked) {
 
-    public static AdminUserResponse from(User user) {
+    public static AdminUserResponse from(User user, String accountNumMasked) {
         return new AdminUserResponse(
                 user.getId(),
                 user.getEmail(),
                 user.getNickname(),
+                user.getProfileImageUrl(),
+                user.getUserRole().name(),
                 user.getStatus(),
                 user.getSuspendedUntil(),
-                user.getSuspensionReason());
+                user.getSuspensionReason(),
+                user.getCreatedAt(),
+                accountNumMasked);
     }
 }
