@@ -12,5 +12,7 @@ public record CompetitionUpdateRequest(
 
         LocalDateTime endAt,
 
-        Boolean isPublic) {
+        Boolean isPublic,
+
+        Integer maxParticipants) {
 }

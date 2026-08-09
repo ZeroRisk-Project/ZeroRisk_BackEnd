@@ -1,10 +1,12 @@
 package com.zerorisk.project.domain.competition.controller;
 
 import com.zerorisk.project.domain.competition.dto.CompetitionCreateRequest;
+import com.zerorisk.project.domain.competition.dto.CompetitionParticipantAdminResponse;
 import com.zerorisk.project.domain.competition.dto.CompetitionUpdateRequest;
 import com.zerorisk.project.domain.competition.service.CompetitionService;
 import com.zerorisk.project.global.security.CurrentUserId;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,5 +39,17 @@ public class AdminCompetitionController {
     @DeleteMapping("/{competitionId}")
     public void delete(@PathVariable Long competitionId) {
         competitionService.deleteCompetition(competitionId);
+    }
+
+    @GetMapping("/{competitionId}/participants")
+    public List<CompetitionParticipantAdminResponse> getParticipants(@PathVariable Long competitionId) {
+        return competitionService.getParticipantsForAdmin(competitionId);
+    }
+
+    @DeleteMapping("/{competitionId}/participants/{userId}")
+    public void expelParticipant(
+            @PathVariable Long competitionId,
+            @PathVariable Long userId) {
+        competitionService.expelParticipant(competitionId, userId);
     }
 }

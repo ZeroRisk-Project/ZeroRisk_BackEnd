@@ -53,6 +53,10 @@ public class Account {
         this.balance = this.balance.add(amount);
     }
 
+    public void zeroBalance() {
+        this.balance = BigDecimal.ZERO;
+    }
+
     public void addSeedMoney(BigDecimal amount) {
         this.balance = this.balance.add(amount);
         this.initialSeedMoney = this.initialSeedMoney.add(amount);

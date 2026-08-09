@@ -80,7 +80,7 @@ public class Competition {
     }
 
     public void updateInfo(String title, String description, LocalDateTime startAt, LocalDateTime endAt,
-            Boolean isPublic) {
+            Boolean isPublic, Integer maxParticipants) {
         this.title = title;
         this.description = description;
         if (startAt != null)
@@ -88,5 +88,6 @@ public class Competition {
         if (endAt != null)
             this.endAt = endAt;
         this.isPublic = isPublic;
+        this.maxParticipants = maxParticipants;
     }
 }
