@@ -1,5 +1,6 @@
 package com.zerorisk.project.domain.user.service;
 
+import com.zerorisk.project.domain.user.dto.ChangePasswordRequest;
 import com.zerorisk.project.domain.user.dto.MyProfileResponse;
 import com.zerorisk.project.domain.user.dto.NicknameCheckResponse;
 import com.zerorisk.project.domain.user.dto.SignupRequest;
@@ -12,6 +13,7 @@ import com.zerorisk.project.global.exception.DuplicateEmailException;
 import com.zerorisk.project.global.exception.DuplicateNicknameException;
 import com.zerorisk.project.global.exception.EmailNotVerifiedException;
 import com.zerorisk.project.global.exception.InvalidCredentialsException;
+import com.zerorisk.project.global.exception.SocialAccountPasswordChangeException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -78,6 +80,23 @@ public class UserService {
 
         user.updateProfile(request.nickname(), request.profileImageUrl());
         return MyProfileResponse.from(user);
+    }
+
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (user.getPassword() == null) {
+            throw new SocialAccountPasswordChangeException();
+        }
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new InvalidCredentialsException();
+        }
+
+        String encodedNewPassword = passwordEncoder.encode(request.newPassword());
+        user.changePassword(encodedNewPassword);
     }
 
     @Transactional

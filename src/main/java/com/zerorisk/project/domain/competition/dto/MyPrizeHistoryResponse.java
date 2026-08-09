@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 
 public record MyPrizeHistoryResponse(
         Long competitionId,
+        String competitionTitle,
         Integer rankPosition,
         BigDecimal prizeAmount,
         LocalDateTime paidAt) {
