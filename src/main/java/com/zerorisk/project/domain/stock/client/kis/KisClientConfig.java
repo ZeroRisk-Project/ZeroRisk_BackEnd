@@ -7,7 +7,7 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
-@EnableConfigurationProperties({KisStockMasterProperties.class, KisProperties.class})
+@EnableConfigurationProperties({KisStockMasterProperties.class, KisProperties.class, KisRealtimeProperties.class})
 public class KisClientConfig {
 
     private static final int MASTER_FILE_MAX_IN_MEMORY_SIZE = 20 * 1024 * 1024;
