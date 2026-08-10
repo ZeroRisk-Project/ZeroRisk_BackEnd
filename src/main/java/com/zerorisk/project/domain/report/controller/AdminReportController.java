@@ -4,10 +4,12 @@ import com.zerorisk.project.domain.report.dto.ReportProcessRequest;
 import com.zerorisk.project.domain.report.dto.ReportResponse;
 import com.zerorisk.project.domain.report.entity.ReportStatus;
 import com.zerorisk.project.domain.report.service.ReportService;
+import com.zerorisk.project.global.security.CurrentUserId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,10 +18,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-// TODO: SecurityConfig에서 /api/v1/admin/** 경로에 ADMIN 권한 체크 적용 필요 (박종권님 설정 확인)
 @RestController
 @RequestMapping("/api/v1/admin/reports")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminReportController {
 
     private final ReportService reportService;
@@ -33,8 +35,9 @@ public class AdminReportController {
 
     @PatchMapping("/{reportId}")
     public ReportResponse processReport(
+            @CurrentUserId Long adminId,
             @PathVariable Long reportId,
             @Valid @RequestBody ReportProcessRequest request) {
-        return reportService.processReport(reportId, request);
+        return reportService.processReport(adminId, reportId, request);
     }
 }

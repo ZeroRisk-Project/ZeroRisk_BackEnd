@@ -11,6 +11,7 @@ import com.zerorisk.project.domain.report.entity.TargetType;
 import com.zerorisk.project.domain.report.repository.ReportRepository;
 import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.repository.UserRepository;
+import com.zerorisk.project.global.audit.AdminActionLogger;
 import com.zerorisk.project.global.exception.ReportNotFoundException;
 import com.zerorisk.project.global.exception.ReportTargetNotFoundException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
@@ -28,6 +29,7 @@ public class ReportService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final AdminActionLogger adminActionLogger;
 
     @Transactional
     public ReportResponse createReport(Long reporterId, ReportCreateRequest request) {
@@ -71,7 +73,7 @@ public class ReportService {
     }
 
     @Transactional
-    public ReportResponse processReport(Long reportId, ReportProcessRequest request) {
+    public ReportResponse processReport(Long adminId, Long reportId, ReportProcessRequest request) {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(ReportNotFoundException::new);
 
@@ -80,6 +82,10 @@ public class ReportService {
         } else {
             report.reject();
         }
+
+        adminActionLogger.log(adminId, request.status() == ReportStatus.PROCESSED ? "PROCESS" : "REJECT",
+                "REPORT", reportId,
+                String.format("신고 #%d 처리 (%s 대상)", reportId, report.getTargetType()));
 
         return ReportResponse.from(report);
     }
