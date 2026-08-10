@@ -9,5 +9,6 @@ public record AdminActionLogResponse(
         String targetType,
         Long targetId,
         String detail,
+        String ipAddress,
         LocalDateTime createdAt) {
 }

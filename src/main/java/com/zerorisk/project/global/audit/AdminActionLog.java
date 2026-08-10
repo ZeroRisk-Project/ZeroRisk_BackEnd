@@ -33,16 +33,20 @@ public class AdminActionLog {
     @Column(name = "DETAIL", length = 500)
     private String detail;
 
+    @Column(name = "IP_ADDRESS", length = 45)
+    private String ipAddress;
+
     @Column(name = "CREATED_AT", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Builder
-    private AdminActionLog(Long adminId, String actionType, String targetType, Long targetId, String detail) {
+    private AdminActionLog(Long adminId, String actionType, String targetType, Long targetId, String detail, String ipAddress) {
         this.adminId = adminId;
         this.actionType = actionType;
         this.targetType = targetType;
         this.targetId = targetId;
         this.detail = detail;
+        this.ipAddress = ipAddress;
         this.createdAt = LocalDateTime.now();
     }
 }

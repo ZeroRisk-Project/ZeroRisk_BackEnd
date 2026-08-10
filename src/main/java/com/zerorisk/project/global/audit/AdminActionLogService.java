@@ -17,6 +17,6 @@ public class AdminActionLogService {
         return adminActionLogRepository.findAllWithAdminNickname(pageable)
                 .map(p -> new AdminActionLogResponse(
                         p.getId(), p.getAdminNickname(), p.getActionType(),
-                        p.getTargetType(), p.getTargetId(), p.getDetail(), p.getCreatedAt()));
+                        p.getTargetType(), p.getTargetId(), p.getDetail(), p.getIpAddress(), p.getCreatedAt()));
     }
 }

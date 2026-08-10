@@ -9,5 +9,6 @@ public interface AdminActionLogProjection {
     String getTargetType();
     Long getTargetId();
     String getDetail();
+    String getIpAddress();
     LocalDateTime getCreatedAt();
 }
