@@ -32,13 +32,16 @@ public class AdminCompetitionController {
     @PutMapping("/{competitionId}")
     public void update(
             @PathVariable Long competitionId,
-            @Valid @RequestBody CompetitionUpdateRequest request) {
-        competitionService.updateCompetition(competitionId, request);
+            @Valid @RequestBody CompetitionUpdateRequest request,
+            @CurrentUserId Long adminUserId) {
+        competitionService.updateCompetition(competitionId, request, adminUserId);
     }
 
     @DeleteMapping("/{competitionId}")
-    public void delete(@PathVariable Long competitionId) {
-        competitionService.deleteCompetition(competitionId);
+    public void delete(
+            @PathVariable Long competitionId,
+            @CurrentUserId Long adminUserId) {
+        competitionService.deleteCompetition(competitionId, adminUserId);
     }
 
     @GetMapping("/{competitionId}/participants")
