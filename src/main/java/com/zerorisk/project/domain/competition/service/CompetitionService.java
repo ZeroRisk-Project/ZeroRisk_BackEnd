@@ -28,6 +28,7 @@ import com.zerorisk.project.domain.competition.repository.CompetitionRankingProj
 import com.zerorisk.project.domain.competition.repository.CompetitionRankingRepository;
 import com.zerorisk.project.domain.competition.repository.CompetitionRepository;
 import com.zerorisk.project.domain.competition.repository.PrizeHistoryRepository;
+import com.zerorisk.project.global.audit.AdminActionLogger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -52,6 +53,7 @@ public class CompetitionService {
         private final CompetitionRankingRepository competitionRankingRepository;
         private final PrizeHistoryRepository prizeHistoryRepository;
         private final CompetitionAllowedStockRepository competitionAllowedStockRepository;
+        private final AdminActionLogger adminActionLogger;
 
         public Page<CompetitionSummaryResponse> getCompetitions(Pageable pageable) {
                 Page<Competition> competitions = competitionRepository.findByIsPublicTrue(pageable);
@@ -189,11 +191,14 @@ public class CompetitionService {
                         }
                 }
 
+                adminActionLogger.log(adminUserId, "CREATE", "COMPETITION", competition.getId(),
+                                String.format("[%s] 대회 생성", competition.getTitle()));
+
                 return competition.getId();
         }
 
         @Transactional
-        public void updateCompetition(Long competitionId, CompetitionUpdateRequest request) {
+        public void updateCompetition(Long competitionId, CompetitionUpdateRequest request, Long adminUserId) {
                 Competition competition = competitionRepository.findById(competitionId)
                                 .orElseThrow(() -> new CompetitionException(CompetitionErrorCode.NOT_FOUND));
 
@@ -205,16 +210,22 @@ public class CompetitionService {
                                 request.title(), request.description(),
                                 request.startAt(), request.endAt(), request.isPublic(),
                                 request.maxParticipants());
+
+                adminActionLogger.log(adminUserId, "UPDATE", "COMPETITION", competitionId,
+                                String.format("[%s] 대회 정보 수정", competition.getTitle()));
         }
 
         @Transactional
-        public void deleteCompetition(Long competitionId) {
+        public void deleteCompetition(Long competitionId, Long adminUserId) {
                 Competition competition = competitionRepository.findById(competitionId)
                                 .orElseThrow(() -> new CompetitionException(CompetitionErrorCode.NOT_FOUND));
 
                 if (competition.getStatus() == CompetitionStatus.ONGOING) {
                         throw new CompetitionException(CompetitionErrorCode.CANNOT_DELETE_ONGOING);
                 }
+
+                adminActionLogger.log(adminUserId, "DELETE", "COMPETITION", competitionId,
+                                String.format("[%s] 대회 삭제", competition.getTitle()));
 
                 competitionRepository.delete(competition);
         }

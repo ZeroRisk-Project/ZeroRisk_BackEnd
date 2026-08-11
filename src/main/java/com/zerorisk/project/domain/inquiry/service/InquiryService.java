@@ -9,6 +9,7 @@ import com.zerorisk.project.domain.notification.entity.NotificationType;
 import com.zerorisk.project.domain.notification.service.NotificationService;
 import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.repository.UserRepository;
+import com.zerorisk.project.global.audit.AdminActionLogger;
 import com.zerorisk.project.global.exception.InquiryAccessDeniedException;
 import com.zerorisk.project.global.exception.InquiryNotFoundException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
@@ -25,6 +26,7 @@ public class InquiryService {
     private final InquiryRepository inquiryRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final AdminActionLogger adminActionLogger;
 
     @Transactional
     public InquiryResponse createInquiry(Long userId, InquiryCreateRequest request) {
@@ -61,7 +63,7 @@ public class InquiryService {
 
     // 관리자 전용 (컨트롤러/시큐리티 단에서 ADMIN 권한 체크)
     @Transactional
-    public InquiryResponse answerInquiry(Long inquiryId, InquiryAnswerRequest request) {
+    public InquiryResponse answerInquiry(Long adminId, Long inquiryId, InquiryAnswerRequest request) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
                 .orElseThrow(InquiryNotFoundException::new);
 
@@ -73,6 +75,9 @@ public class InquiryService {
                 "문의 답변 등록",
                 "등록하신 문의에 답변이 등록되었습니다.",
                 "/mypage/inquiries/" + inquiry.getId());
+
+        adminActionLogger.log(adminId, "ANSWER", "INQUIRY", inquiryId,
+                String.format("문의 #%d 답변 등록", inquiryId));
 
         return InquiryResponse.from(inquiry);
     }
