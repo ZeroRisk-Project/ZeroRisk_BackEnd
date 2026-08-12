@@ -1,5 +1,6 @@
 package com.zerorisk.project.domain.report.service;
 
+import com.zerorisk.project.domain.comment.repository.CommentPostIdProjection;
 import com.zerorisk.project.domain.comment.repository.CommentRepository;
 import com.zerorisk.project.domain.post.repository.PostRepository;
 import com.zerorisk.project.domain.report.dto.ReportCreateRequest;
@@ -8,6 +9,7 @@ import com.zerorisk.project.domain.report.dto.ReportResponse;
 import com.zerorisk.project.domain.report.entity.Report;
 import com.zerorisk.project.domain.report.entity.ReportStatus;
 import com.zerorisk.project.domain.report.entity.TargetType;
+import com.zerorisk.project.domain.report.repository.ReportProjection;
 import com.zerorisk.project.domain.report.repository.ReportRepository;
 import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.repository.UserRepository;
@@ -15,6 +17,9 @@ import com.zerorisk.project.global.audit.AdminActionLogger;
 import com.zerorisk.project.global.exception.ReportNotFoundException;
 import com.zerorisk.project.global.exception.ReportTargetNotFoundException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -47,7 +52,15 @@ public class ReportService {
 
         Report savedReport = reportRepository.save(report);
 
-        return ReportResponse.from(savedReport);
+        return ReportResponse.from(savedReport, resolveTargetPostId(savedReport.getTargetType(), savedReport.getTargetId()));
+    }
+
+    private Long resolveTargetPostId(TargetType targetType, Long targetId) {
+        return switch (targetType) {
+            case POST -> targetId;
+            case COMMENT -> commentRepository.findById(targetId).map(c -> c.getPost().getId()).orElse(null);
+            case CHAT, USER -> null;
+        };
     }
 
     // TARGET_TYPE에 따라 실제로 존재하는 대상인지 확인. FK가 없어서 이 로직이 유일한 방어선.
@@ -65,11 +78,29 @@ public class ReportService {
     }
 
     public Page<ReportResponse> getReports(ReportStatus status, Pageable pageable) {
-        Page<Report> reports = status != null
-                ? reportRepository.findByStatus(status, pageable)
-                : reportRepository.findAll(pageable);
+        Page<ReportProjection> reports = reportRepository.findAllWithReporterNickname(status, pageable);
 
-        return reports.map(ReportResponse::from);
+        List<Long> commentTargetIds = reports.getContent().stream()
+                .filter(r -> r.getTargetType() == TargetType.COMMENT)
+                .map(ReportProjection::getTargetId)
+                .toList();
+
+        Map<Long, Long> commentToPostIdMap = commentTargetIds.isEmpty()
+                ? Map.of()
+                : commentRepository.findPostIdsByCommentIds(commentTargetIds).stream()
+                        .collect(Collectors.toMap(CommentPostIdProjection::getCommentId, CommentPostIdProjection::getPostId));
+
+        return reports.map(r -> {
+            Long targetPostId = switch (r.getTargetType()) {
+                case POST -> r.getTargetId();
+                case COMMENT -> commentToPostIdMap.get(r.getTargetId());
+                case CHAT, USER -> null;
+            };
+
+            return new ReportResponse(
+                    r.getId(), r.getTargetType(), r.getTargetId(), r.getReporterNickname(),
+                    r.getReason(), r.getStatus(), r.getCreatedAt(), targetPostId);
+        });
     }
 
     @Transactional
@@ -87,6 +118,6 @@ public class ReportService {
                 "REPORT", reportId,
                 String.format("신고 #%d 처리 (%s 대상)", reportId, report.getTargetType()));
 
-        return ReportResponse.from(report);
+        return ReportResponse.from(report, resolveTargetPostId(report.getTargetType(), report.getTargetId()));
     }
 }

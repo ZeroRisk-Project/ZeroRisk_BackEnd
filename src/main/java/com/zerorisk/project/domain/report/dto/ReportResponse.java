@@ -9,19 +9,21 @@ public record ReportResponse(
         Long id,
         TargetType targetType,
         Long targetId,
-        Long reporterId,
+        String reporterNickname,
         String reason,
         ReportStatus status,
-        LocalDateTime createdAt) {
+        LocalDateTime createdAt,
+        Long targetPostId) {
 
-    public static ReportResponse from(Report report) {
+    public static ReportResponse from(Report report, Long targetPostId) {
         return new ReportResponse(
                 report.getId(),
                 report.getTargetType(),
                 report.getTargetId(),
-                report.getReporter().getId(),
+                report.getReporter().getNickname(),
                 report.getReason(),
                 report.getStatus(),
-                report.getCreatedAt());
+                report.getCreatedAt(),
+                targetPostId);
     }
 }
