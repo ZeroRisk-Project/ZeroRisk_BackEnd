@@ -1,9 +1,11 @@
 package com.zerorisk.project.domain.inquiry.service;
 
+import com.zerorisk.project.domain.inquiry.dto.AdminInquiryResponse;
 import com.zerorisk.project.domain.inquiry.dto.InquiryAnswerRequest;
 import com.zerorisk.project.domain.inquiry.dto.InquiryCreateRequest;
 import com.zerorisk.project.domain.inquiry.dto.InquiryResponse;
 import com.zerorisk.project.domain.inquiry.entity.Inquiry;
+import com.zerorisk.project.domain.inquiry.repository.InquiryAdminProjection;
 import com.zerorisk.project.domain.inquiry.repository.InquiryRepository;
 import com.zerorisk.project.domain.notification.entity.NotificationType;
 import com.zerorisk.project.domain.notification.service.NotificationService;
@@ -59,6 +61,14 @@ public class InquiryService {
         }
 
         return InquiryResponse.from(inquiry);
+    }
+
+    // 관리자 전용 (컨트롤러/시큐리티 단에서 ADMIN 권한 체크)
+    public Page<AdminInquiryResponse> getAllInquiriesForAdmin(Pageable pageable) {
+        return inquiryRepository.findAllWithAuthorNickname(pageable)
+                .map(p -> new AdminInquiryResponse(
+                        p.getId(), p.getAuthorNickname(), p.getCategory(), p.getTitle(),
+                        p.getContent(), p.getAnswer(), p.getStatus(), p.getCreatedAt(), p.getAnsweredAt()));
     }
 
     // 관리자 전용 (컨트롤러/시큐리티 단에서 ADMIN 권한 체크)

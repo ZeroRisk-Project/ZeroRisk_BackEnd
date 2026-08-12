@@ -3,6 +3,7 @@ package com.zerorisk.project.domain.inquiry.controller;
 import com.zerorisk.project.domain.inquiry.dto.InquiryCreateRequest;
 import com.zerorisk.project.domain.inquiry.dto.InquiryResponse;
 import com.zerorisk.project.domain.inquiry.service.InquiryService;
+import com.zerorisk.project.global.security.CurrentUserId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,28 +25,25 @@ public class InquiryController {
     private final InquiryService inquiryService;
 
     @PostMapping
-    public ResponseEntity<InquiryResponse> createInquiry(@Valid @RequestBody InquiryCreateRequest request) {
-        // TODO: JWT 로그인 완료 후 @AuthenticationPrincipal로 실제 userId 주입
-        Long userId = 1L;
-
+    public ResponseEntity<InquiryResponse> createInquiry(
+            @CurrentUserId Long userId,
+            @Valid @RequestBody InquiryCreateRequest request) {
         InquiryResponse response = inquiryService.createInquiry(userId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
-    public ResponseEntity<Page<InquiryResponse>> getMyInquiries(Pageable pageable) {
-        // TODO: JWT 로그인 완료 후 @AuthenticationPrincipal로 실제 userId 주입
-        Long userId = 1L;
-
+    public ResponseEntity<Page<InquiryResponse>> getMyInquiries(
+            @CurrentUserId Long userId,
+            Pageable pageable) {
         return ResponseEntity.ok(inquiryService.getMyInquiries(userId, pageable));
     }
 
     @GetMapping("/{inquiryId}")
-    public ResponseEntity<InquiryResponse> getInquiry(@PathVariable Long inquiryId) {
-        // TODO: JWT 로그인 완료 후 @AuthenticationPrincipal로 실제 userId 주입
-        Long userId = 1L;
-
+    public ResponseEntity<InquiryResponse> getInquiry(
+            @CurrentUserId Long userId,
+            @PathVariable Long inquiryId) {
         return ResponseEntity.ok(inquiryService.getInquiry(userId, inquiryId));
     }
 }
