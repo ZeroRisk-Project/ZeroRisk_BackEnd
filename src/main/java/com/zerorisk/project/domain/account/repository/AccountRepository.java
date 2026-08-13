@@ -15,6 +15,10 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     @Query("SELECT a FROM Account a WHERE a.userId = :userId AND a.accountType = 'BASIC'")
     Optional<Account> findBasicAccountByUserIdForUpdate(java.lang.Long userId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT a FROM Account a WHERE a.id = :id")
+    Optional<Account> findByIdForUpdate(java.lang.Long id);
+
     Optional<Account> findByUserIdAndAccountType(Long userId, AccountType accountType);
 
     List<Account> findByUserId(Long userId);
