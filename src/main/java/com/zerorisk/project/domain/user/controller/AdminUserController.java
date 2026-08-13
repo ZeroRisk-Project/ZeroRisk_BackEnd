@@ -4,6 +4,7 @@ import com.zerorisk.project.domain.user.dto.AdminUserResponse;
 import com.zerorisk.project.domain.user.dto.UserSuspendRequest;
 import com.zerorisk.project.domain.user.entity.UserStatus;
 import com.zerorisk.project.domain.user.service.AdminUserService;
+import com.zerorisk.project.global.security.CurrentUserId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -35,13 +36,16 @@ public class AdminUserController {
 
     @PatchMapping("/{userId}/suspend")
     public AdminUserResponse suspendUser(
+            @CurrentUserId Long adminId,
             @PathVariable Long userId,
             @Valid @RequestBody UserSuspendRequest request) {
-        return adminUserService.suspendUser(userId, request);
+        return adminUserService.suspendUser(adminId, userId, request);
     }
 
     @PatchMapping("/{userId}/unsuspend")
-    public AdminUserResponse unsuspendUser(@PathVariable Long userId) {
-        return adminUserService.unsuspendUser(userId);
+    public AdminUserResponse unsuspendUser(
+            @CurrentUserId Long adminId,
+            @PathVariable Long userId) {
+        return adminUserService.unsuspendUser(adminId, userId);
     }
 }
