@@ -3,6 +3,7 @@ package com.zerorisk.project.domain.user.repository;
 import com.zerorisk.project.domain.user.entity.OAuthProvider;
 import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.entity.UserStatus;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,4 +27,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             AND (:status IS NULL OR u.status = :status)
             """)
     Page<User> searchUsers(@Param("keyword") String keyword, @Param("status") UserStatus status, Pageable pageable);
+
+    long countByCreatedAtAfter(LocalDateTime dateTime);
 }

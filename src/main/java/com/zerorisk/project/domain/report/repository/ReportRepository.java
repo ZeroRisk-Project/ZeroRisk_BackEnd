@@ -20,4 +20,6 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
             ORDER BY r.createdAt DESC
             """)
     Page<ReportProjection> findAllWithReporterNickname(@Param("status") ReportStatus status, Pageable pageable);
+
+    long countByStatus(ReportStatus status);
 }
