@@ -9,6 +9,8 @@ import com.zerorisk.project.domain.user.entity.UserStatus;
 import com.zerorisk.project.domain.user.repository.UserRepository;
 import com.zerorisk.project.global.audit.AdminActionLogger;
 import com.zerorisk.project.global.exception.UserNotFoundException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,6 +27,11 @@ public class AdminUserService {
         private final UserRepository userRepository;
         private final OpenBankingAuthRepository openBankingAuthRepository;
         private final AdminActionLogger adminActionLogger;
+
+        public long getTodayNewUserCount() {
+                LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+                return userRepository.countByCreatedAtAfter(todayStart);
+        }
 
         public Page<AdminUserResponse> getUsers(String keyword, UserStatus status, Pageable pageable) {
                 Page<User> users = userRepository.searchUsers(keyword, status, pageable);

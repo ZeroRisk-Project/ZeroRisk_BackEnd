@@ -1,6 +1,7 @@
 package com.zerorisk.project.domain.inquiry.repository;
 
 import com.zerorisk.project.domain.inquiry.entity.Inquiry;
+import com.zerorisk.project.domain.inquiry.entity.InquiryStatus;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,4 +23,6 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
             ORDER BY i.createdAt DESC
             """)
     Page<InquiryAdminProjection> findAllWithAuthorNickname(Pageable pageable);
+
+    long countByStatus(InquiryStatus status);
 }
