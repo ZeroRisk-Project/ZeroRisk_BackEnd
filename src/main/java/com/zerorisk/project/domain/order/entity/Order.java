@@ -78,4 +78,12 @@ public class Order {
         this.filledPrice = price;
         this.filledAt = LocalDateTime.now();
     }
+
+    public void cancel() {
+        this.status = OrderStatus.CANCELLED;
+    }
+
+    public boolean isPending() {
+        return this.status == OrderStatus.PENDING;
+    }
 }
