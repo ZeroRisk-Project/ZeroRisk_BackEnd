@@ -14,6 +14,7 @@ import com.zerorisk.project.domain.account.exception.AccountException;
 import com.zerorisk.project.domain.account.repository.AccountRepository;
 import com.zerorisk.project.domain.order.dto.OrderCreateRequest;
 import com.zerorisk.project.domain.order.dto.OrderResponse;
+import com.zerorisk.project.domain.order.entity.Order;
 import com.zerorisk.project.domain.order.entity.OrderSide;
 import com.zerorisk.project.domain.order.entity.OrderStatus;
 import com.zerorisk.project.domain.order.entity.OrderType;
@@ -161,6 +162,79 @@ class OrderServiceTest {
         OrderCreateRequest request = new OrderCreateRequest(10L, "005930", OrderSide.BUY, OrderType.MARKET, 10L, null);
 
         assertThatThrownBy(() -> orderService.createOrder(1L, request))
+                .isInstanceOf(AccountException.class);
+    }
+
+    @DisplayName("미체결 주문을 취소하면 CANCELLED로 상태 전환")
+    @Test
+    void 미체결_주문을_취소하면_CANCELLED로_상태_전환() {
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient);
+        Account account = account(1L, BigDecimal.ZERO);
+        Order order = Order.builder()
+                .accountId(10L)
+                .stockId(1L)
+                .side(OrderSide.BUY)
+                .orderType(OrderType.LIMIT)
+                .quantity(10L)
+                .limitPrice(new BigDecimal("60000"))
+                .build();
+        given(orderRepository.findById(5L)).willReturn(Optional.of(order));
+        given(accountRepository.findById(10L)).willReturn(Optional.of(account));
+
+        orderService.cancelOrder(1L, 5L);
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+    }
+
+    @DisplayName("이미 체결된 주문을 취소할 시 예외 발생")
+    @Test
+    void 이미_체결된_주문을_취소할_시_예외_발생() {
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient);
+        Account account = account(1L, BigDecimal.ZERO);
+        Order order = Order.builder()
+                .accountId(10L)
+                .stockId(1L)
+                .side(OrderSide.BUY)
+                .orderType(OrderType.MARKET)
+                .quantity(10L)
+                .build();
+        order.fill(new BigDecimal("70000"));
+        given(orderRepository.findById(5L)).willReturn(Optional.of(order));
+        given(accountRepository.findById(10L)).willReturn(Optional.of(account));
+
+        assertThatThrownBy(() -> orderService.cancelOrder(1L, 5L))
+                .isInstanceOf(OrderException.class)
+                .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.ALREADY_PROCESSED);
+    }
+
+    @DisplayName("존재하지 않는 주문을 취소할 시 예외 발생")
+    @Test
+    void 존재하지_않는_주문을_취소할_시_예외_발생() {
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient);
+        given(orderRepository.findById(5L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.cancelOrder(1L, 5L))
+                .isInstanceOf(OrderException.class)
+                .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.NOT_FOUND);
+    }
+
+    @DisplayName("다른 사용자의 주문을 취소할 시 예외 발생")
+    @Test
+    void 다른_사용자의_주문을_취소할_시_예외_발생() {
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient);
+        Account account = account(2L, BigDecimal.ZERO);
+        Order order = Order.builder()
+                .accountId(10L)
+                .stockId(1L)
+                .side(OrderSide.BUY)
+                .orderType(OrderType.LIMIT)
+                .quantity(10L)
+                .limitPrice(new BigDecimal("60000"))
+                .build();
+        given(orderRepository.findById(5L)).willReturn(Optional.of(order));
+        given(accountRepository.findById(10L)).willReturn(Optional.of(account));
+
+        assertThatThrownBy(() -> orderService.cancelOrder(1L, 5L))
                 .isInstanceOf(AccountException.class);
     }
 }
