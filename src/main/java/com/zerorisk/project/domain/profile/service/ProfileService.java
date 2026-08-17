@@ -53,7 +53,8 @@ public class ProfileService {
 
         return history.stream()
                 .map(h -> new ProfileResponse.ProfileCompetitionHistory(
-                        h.getCompetitionId(), h.getTitle(), h.getRankPosition(),
+                        h.getCompetitionId(), h.getTitle(), h.getStartAt(), h.getEndAt(),
+                        h.getSeedMoney(), h.getStatus(), h.getRankPosition(),
                         h.getReturnRate(), prizeMap.get(h.getCompetitionId())))
                 .toList();
     }

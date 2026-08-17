@@ -1,5 +1,6 @@
 package com.zerorisk.project.domain.profile.dto;
 
+import com.zerorisk.project.domain.competition.entity.CompetitionStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,6 +21,10 @@ public record ProfileResponse(
     public record ProfileCompetitionHistory(
             Long competitionId,
             String title,
+            LocalDateTime startAt,
+            LocalDateTime endAt,
+            BigDecimal seedMoney,
+            CompetitionStatus status,
             Integer rankPosition,
             BigDecimal returnRate,
             BigDecimal prizeAmount) {

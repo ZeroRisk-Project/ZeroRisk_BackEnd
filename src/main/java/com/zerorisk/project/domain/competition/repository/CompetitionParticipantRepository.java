@@ -49,6 +49,8 @@ public interface CompetitionParticipantRepository extends JpaRepository<Competit
 
     @Query("""
             SELECT cp.competitionId AS competitionId, c.title AS title,
+                   c.startAt AS startAt, c.endAt AS endAt, c.seedMoney AS seedMoney,
+                   c.status AS status,
                    cp.rankPosition AS rankPosition, cp.returnRate AS returnRate
             FROM CompetitionParticipant cp
             JOIN Competition c ON c.id = cp.competitionId
