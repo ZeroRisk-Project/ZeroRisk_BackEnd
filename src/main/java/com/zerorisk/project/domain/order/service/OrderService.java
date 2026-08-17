@@ -91,6 +91,25 @@ public class OrderService {
         return OrderResponse.from(order);
     }
 
+    @Transactional
+    public void cancelOrder(Long userId, Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new OrderException(OrderErrorCode.NOT_FOUND));
+
+        Account account = accountRepository.findById(order.getAccountId())
+                .orElseThrow(() -> new AccountException(AccountErrorCode.NOT_FOUND));
+
+        if (!account.getUserId().equals(userId)) {
+            throw new AccountException(AccountErrorCode.ACCESS_DENIED);
+        }
+
+        if (!order.isPending()) {
+            throw new OrderException(OrderErrorCode.ALREADY_PROCESSED);
+        }
+
+        order.cancel();
+    }
+
     private void executeFill(Order order, Account account, Holding holding, BigDecimal executionPrice) {
         order.fill(executionPrice);
 
