@@ -46,4 +46,14 @@ public interface CompetitionParticipantRepository extends JpaRepository<Competit
             ORDER BY cp.joinedAt ASC
             """)
     List<CompetitionParticipantAdminProjection> findParticipantsWithUserInfo(@Param("competitionId") Long competitionId);
+
+    @Query("""
+            SELECT cp.competitionId AS competitionId, c.title AS title,
+                   cp.rankPosition AS rankPosition, cp.returnRate AS returnRate
+            FROM CompetitionParticipant cp
+            JOIN Competition c ON c.id = cp.competitionId
+            WHERE cp.userId = :userId
+            ORDER BY cp.joinedAt DESC
+            """)
+    List<ProfileCompetitionProjection> findCompetitionHistoryByUserId(@Param("userId") Long userId);
 }

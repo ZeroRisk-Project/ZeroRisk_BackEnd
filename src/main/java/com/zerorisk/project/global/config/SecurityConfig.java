@@ -89,6 +89,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/competitions/*/archive").permitAll()
                         // 커뮤니티 [공개] 조회 API - 로그인 없이도 접근 가능해야 함
                         .requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/**").permitAll()
+                        // 공개 프로필 조회 - 로그인 여부와 무관하게 접근 가능해야 함
+                        .requestMatchers(HttpMethod.GET, "/api/v1/profiles/*").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.oidcUserService(customOAuth2UserService))
