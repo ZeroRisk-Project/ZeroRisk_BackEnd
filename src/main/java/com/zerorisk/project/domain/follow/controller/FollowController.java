@@ -2,6 +2,7 @@ package com.zerorisk.project.domain.follow.controller;
 
 import com.zerorisk.project.domain.follow.dto.FollowUserResponse;
 import com.zerorisk.project.domain.follow.service.FollowService;
+import com.zerorisk.project.global.security.CurrentUserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,20 +22,18 @@ public class FollowController {
     private final FollowService followService;
 
     @PostMapping("/{userId}")
-    public ResponseEntity<Void> follow(@PathVariable Long userId) {
-        // TODO: JWT 로그인 완료 후 @AuthenticationPrincipal로 실제 followerId 주입
-        Long followerId = 1L;
-
+    public ResponseEntity<Void> follow(
+            @CurrentUserId Long followerId,
+            @PathVariable Long userId) {
         followService.follow(followerId, userId);
 
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{userId}")
-    public ResponseEntity<Void> unfollow(@PathVariable Long userId) {
-        // TODO: JWT 로그인 완료 후 @AuthenticationPrincipal로 실제 followerId 주입
-        Long followerId = 1L;
-
+    public ResponseEntity<Void> unfollow(
+            @CurrentUserId Long followerId,
+            @PathVariable Long userId) {
         followService.unfollow(followerId, userId);
 
         return ResponseEntity.noContent().build();

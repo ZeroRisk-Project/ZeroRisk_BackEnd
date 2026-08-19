@@ -17,4 +17,6 @@ public interface PrizeHistoryRepository extends JpaRepository<PrizeHistory, Long
             ORDER BY ph.paidAt DESC
             """)
     List<MyPrizeHistoryProjection> findByUserIdWithCompetitionTitle(@Param("userId") Long userId);
+
+    List<PrizeHistory> findByUserId(Long userId);
 }
