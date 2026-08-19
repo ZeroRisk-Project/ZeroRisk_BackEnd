@@ -14,6 +14,7 @@ import com.zerorisk.project.domain.account.exception.AccountException;
 import com.zerorisk.project.domain.account.repository.AccountRepository;
 import com.zerorisk.project.domain.order.dto.OrderCreateRequest;
 import com.zerorisk.project.domain.order.dto.OrderResponse;
+import com.zerorisk.project.domain.order.dto.OrderSummaryResponse;
 import com.zerorisk.project.domain.order.entity.Order;
 import com.zerorisk.project.domain.order.entity.OrderSide;
 import com.zerorisk.project.domain.order.entity.OrderStatus;
@@ -29,12 +30,18 @@ import com.zerorisk.project.domain.stock.entity.Market;
 import com.zerorisk.project.domain.stock.entity.Stock;
 import com.zerorisk.project.domain.stock.repository.StockRepository;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -235,6 +242,59 @@ class OrderServiceTest {
         given(accountRepository.findById(10L)).willReturn(Optional.of(account));
 
         assertThatThrownBy(() -> orderService.cancelOrder(1L, 5L))
+                .isInstanceOf(AccountException.class);
+    }
+
+    @DisplayName("계좌의 주문 내역을 페이징으로 조회")
+    @Test
+    void 계좌의_주문_내역을_페이징으로_조회() {
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient);
+        Account account = account(1L, BigDecimal.ZERO);
+        Order order = Order.builder()
+                .accountId(10L)
+                .stockId(1L)
+                .side(OrderSide.BUY)
+                .orderType(OrderType.MARKET)
+                .quantity(10L)
+                .build();
+        Pageable pageable = PageRequest.of(0, 10);
+        Stock stock = stock();
+        ReflectionTestUtils.setField(stock, "id", 1L);
+        given(accountRepository.findById(10L)).willReturn(Optional.of(account));
+        given(orderRepository.findByAccountId(10L, pageable)).willReturn(new PageImpl<>(List.of(order)));
+        given(stockRepository.findAllById(List.of(1L))).willReturn(List.of(stock));
+
+        Page<OrderSummaryResponse> response = orderService.getOrders(1L, 10L, null, pageable);
+
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent().get(0).stockCode()).isEqualTo("005930");
+    }
+
+    @DisplayName("상태 필터를 지정하면 해당 상태의 주문만 조회")
+    @Test
+    void 상태_필터를_지정하면_해당_상태의_주문만_조회() {
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient);
+        Account account = account(1L, BigDecimal.ZERO);
+        Pageable pageable = PageRequest.of(0, 10);
+        given(accountRepository.findById(10L)).willReturn(Optional.of(account));
+        given(orderRepository.findByAccountIdAndStatus(10L, OrderStatus.PENDING, pageable))
+                .willReturn(new PageImpl<>(List.of()));
+
+        orderService.getOrders(1L, 10L, OrderStatus.PENDING, pageable);
+
+        verify(orderRepository).findByAccountIdAndStatus(10L, OrderStatus.PENDING, pageable);
+        verify(orderRepository, never()).findByAccountId(any(), any());
+    }
+
+    @DisplayName("다른 사용자의 계좌로 주문 내역을 조회할 시 예외 발생")
+    @Test
+    void 다른_사용자의_계좌로_주문_내역을_조회할_시_예외_발생() {
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient);
+        Account account = account(2L, BigDecimal.ZERO);
+        Pageable pageable = PageRequest.of(0, 10);
+        given(accountRepository.findById(10L)).willReturn(Optional.of(account));
+
+        assertThatThrownBy(() -> orderService.getOrders(1L, 10L, null, pageable))
                 .isInstanceOf(AccountException.class);
     }
 }

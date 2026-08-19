@@ -6,8 +6,10 @@ import com.zerorisk.project.domain.account.exception.AccountException;
 import com.zerorisk.project.domain.account.repository.AccountRepository;
 import com.zerorisk.project.domain.order.dto.OrderCreateRequest;
 import com.zerorisk.project.domain.order.dto.OrderResponse;
+import com.zerorisk.project.domain.order.dto.OrderSummaryResponse;
 import com.zerorisk.project.domain.order.entity.Order;
 import com.zerorisk.project.domain.order.entity.OrderSide;
+import com.zerorisk.project.domain.order.entity.OrderStatus;
 import com.zerorisk.project.domain.order.entity.OrderType;
 import com.zerorisk.project.domain.order.entity.Trade;
 import com.zerorisk.project.domain.order.exception.OrderErrorCode;
@@ -21,7 +23,12 @@ import com.zerorisk.project.domain.stock.entity.Stock;
 import com.zerorisk.project.domain.stock.repository.StockRepository;
 import com.zerorisk.project.global.exception.StockNotFoundException;
 import java.math.BigDecimal;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,6 +96,27 @@ public class OrderService {
         }
 
         return OrderResponse.from(order);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderSummaryResponse> getOrders(Long userId, Long accountId, OrderStatus status, Pageable pageable) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AccountException(AccountErrorCode.NOT_FOUND));
+
+        if (!account.getUserId().equals(userId)) {
+            throw new AccountException(AccountErrorCode.ACCESS_DENIED);
+        }
+
+        Page<Order> orders = status == null
+                ? orderRepository.findByAccountId(accountId, pageable)
+                : orderRepository.findByAccountIdAndStatus(accountId, status, pageable);
+
+        Map<Long, Stock> stocksById = stockRepository.findAllById(
+                        orders.getContent().stream().map(Order::getStockId).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(Stock::getId, Function.identity()));
+
+        return orders.map(order -> OrderSummaryResponse.of(order, stocksById.get(order.getStockId())));
     }
 
     @Transactional

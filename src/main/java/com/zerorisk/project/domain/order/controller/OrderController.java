@@ -2,17 +2,23 @@ package com.zerorisk.project.domain.order.controller;
 
 import com.zerorisk.project.domain.order.dto.OrderCreateRequest;
 import com.zerorisk.project.domain.order.dto.OrderResponse;
+import com.zerorisk.project.domain.order.dto.OrderSummaryResponse;
+import com.zerorisk.project.domain.order.entity.OrderStatus;
 import com.zerorisk.project.domain.order.service.OrderService;
 import com.zerorisk.project.global.security.CurrentUserId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -28,6 +34,15 @@ public class OrderController {
             @Valid @RequestBody OrderCreateRequest request) {
         OrderResponse response = orderService.createOrder(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<OrderSummaryResponse>> getOrders(
+            @CurrentUserId Long userId,
+            @RequestParam Long accountId,
+            @RequestParam(required = false) OrderStatus status,
+            Pageable pageable) {
+        return ResponseEntity.ok(orderService.getOrders(userId, accountId, status, pageable));
     }
 
     @DeleteMapping("/{orderId}")
