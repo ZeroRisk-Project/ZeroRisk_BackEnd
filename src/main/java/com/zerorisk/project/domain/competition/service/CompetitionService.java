@@ -29,6 +29,7 @@ import com.zerorisk.project.domain.competition.repository.CompetitionRankingRepo
 import com.zerorisk.project.domain.competition.repository.CompetitionRepository;
 import com.zerorisk.project.domain.competition.repository.PrizeHistoryRepository;
 import com.zerorisk.project.global.audit.AdminActionLogger;
+import com.zerorisk.project.global.audit.UserActivityLogger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -54,6 +55,7 @@ public class CompetitionService {
         private final PrizeHistoryRepository prizeHistoryRepository;
         private final CompetitionAllowedStockRepository competitionAllowedStockRepository;
         private final AdminActionLogger adminActionLogger;
+        private final UserActivityLogger userActivityLogger;
 
         public Page<CompetitionSummaryResponse> getCompetitions(Pageable pageable) {
                 Page<Competition> competitions = competitionRepository.findByIsPublicTrue(pageable);
@@ -122,6 +124,8 @@ public class CompetitionService {
                                 .totalAsset(competition.getSeedMoney())
                                 .build();
                 competitionParticipantRepository.save(participant);
+
+                userActivityLogger.log(userId, "JOIN_COMPETITION", "[" + competition.getTitle() + "] 대회 참가");
 
                 return new JoinCompetitionResponse(participant.getId(), competitionAccount.getId());
         }

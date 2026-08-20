@@ -4,6 +4,7 @@ import com.zerorisk.project.domain.comment.dto.CommentCreateRequest;
 import com.zerorisk.project.domain.comment.dto.CommentResponse;
 import com.zerorisk.project.domain.comment.dto.CommentUpdateRequest;
 import com.zerorisk.project.domain.comment.service.CommentService;
+import com.zerorisk.project.global.security.CurrentUserId;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -25,11 +26,9 @@ public class CommentController {
 
     @PostMapping("/api/v1/posts/{postId}/comments")
     public ResponseEntity<CommentResponse> createComment(
+            @CurrentUserId Long userId,
             @PathVariable Long postId,
             @Valid @RequestBody CommentCreateRequest request) {
-        // TODO: JWT 로그인 완료 후 @AuthenticationPrincipal로 실제 userId 주입
-        Long userId = 1L;
-
         CommentResponse response = commentService.createComment(userId, postId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -42,19 +41,14 @@ public class CommentController {
 
     @PatchMapping("/api/v1/comments/{commentId}")
     public ResponseEntity<CommentResponse> updateComment(
+            @CurrentUserId Long userId,
             @PathVariable Long commentId,
             @Valid @RequestBody CommentUpdateRequest request) {
-        // TODO: JWT 로그인 완료 후 @AuthenticationPrincipal로 실제 userId 주입
-        Long userId = 1L;
-
         return ResponseEntity.ok(commentService.updateComment(userId, commentId, request));
     }
 
     @DeleteMapping("/api/v1/comments/{commentId}")
-    public ResponseEntity<Void> deleteComment(@PathVariable Long commentId) {
-        // TODO: JWT 로그인 완료 후 @AuthenticationPrincipal로 실제 userId 주입
-        Long userId = 1L;
-
+    public ResponseEntity<Void> deleteComment(@CurrentUserId Long userId, @PathVariable Long commentId) {
         commentService.deleteComment(userId, commentId);
 
         return ResponseEntity.noContent().build();

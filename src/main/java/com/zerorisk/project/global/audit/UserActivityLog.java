@@ -8,27 +8,21 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "ADMIN_ACTION_LOGS")
+@Table(name = "USER_ACTIVITY_LOGS")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class AdminActionLog {
+public class UserActivityLog {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "admin_action_logs_seq")
-    @SequenceGenerator(name = "admin_action_logs_seq", sequenceName = "ADMIN_ACTION_LOGS_SEQ", allocationSize = 50)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_activity_logs_seq")
+    @SequenceGenerator(name = "user_activity_logs_seq", sequenceName = "USER_ACTIVITY_LOGS_SEQ", allocationSize = 50)
     private Long id;
 
-    @Column(name = "ADMIN_ID", nullable = false, updatable = false)
-    private Long adminId;
+    @Column(name = "USER_ID", nullable = false, updatable = false)
+    private Long userId;
 
     @Column(name = "ACTION_TYPE", nullable = false, length = 30, updatable = false)
     private String actionType;
-
-    @Column(name = "TARGET_TYPE", nullable = false, length = 30, updatable = false)
-    private String targetType;
-
-    @Column(name = "TARGET_ID", nullable = false, updatable = false)
-    private Long targetId;
 
     @Column(name = "DETAIL", length = 500, updatable = false)
     private String detail;
@@ -40,11 +34,9 @@ public class AdminActionLog {
     private LocalDateTime createdAt;
 
     @Builder
-    private AdminActionLog(Long adminId, String actionType, String targetType, Long targetId, String detail, String ipAddress) {
-        this.adminId = adminId;
+    private UserActivityLog(Long userId, String actionType, String detail, String ipAddress) {
+        this.userId = userId;
         this.actionType = actionType;
-        this.targetType = targetType;
-        this.targetId = targetId;
         this.detail = detail;
         this.ipAddress = ipAddress;
         this.createdAt = LocalDateTime.now();

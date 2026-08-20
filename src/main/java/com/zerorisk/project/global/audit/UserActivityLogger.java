@@ -6,13 +6,13 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class AdminActionLogger {
+public class UserActivityLogger {
 
     private final ApplicationEventPublisher eventPublisher;
 
-    public void log(Long adminId, String actionType, String targetType, Long targetId, String detail) {
-        eventPublisher.publishEvent(new AdminActionEvent(
-                adminId, actionType, targetType, targetId, detail, ClientIpExtractor.extract()
+    public void log(Long userId, String actionType, String detail) {
+        eventPublisher.publishEvent(new UserActivityEvent(
+                userId, actionType, detail, ClientIpExtractor.extract()
         ));
     }
 }

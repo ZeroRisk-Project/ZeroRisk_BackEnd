@@ -3,6 +3,7 @@ package com.zerorisk.project.global.security.oauth;
 import com.zerorisk.project.domain.user.entity.OAuthProvider;
 import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.repository.UserRepository;
+import com.zerorisk.project.global.audit.UserActivityLogger;
 import java.security.SecureRandom;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CustomOAuth2UserService extends OidcUserService {
 
     private final UserRepository userRepository;
+    private final UserActivityLogger userActivityLogger;
 
     @Override
     @Transactional
@@ -55,9 +57,13 @@ public class CustomOAuth2UserService extends OidcUserService {
 
     private User findOrCreateUser(OAuthUserInfo userInfo) {
         return userRepository.findByEmail(userInfo.email())
-                .orElseGet(() -> userRepository.save(
-                        User.createOAuthUser(userInfo.email(), resolveNickname(userInfo), userInfo.provider(),
-                                userInfo.providerId())));
+                .orElseGet(() -> {
+                    User savedUser = userRepository.save(
+                            User.createOAuthUser(userInfo.email(), resolveNickname(userInfo), userInfo.provider(),
+                                    userInfo.providerId()));
+                    userActivityLogger.log(savedUser.getId(), "SIGNUP", "회원가입 (" + userInfo.provider() + ")");
+                    return savedUser;
+                });
     }
 
     private record OAuthUserInfo(String email, String nickname, OAuthProvider provider, String providerId) {

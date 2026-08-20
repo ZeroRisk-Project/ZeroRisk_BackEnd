@@ -21,6 +21,7 @@ import com.zerorisk.project.global.exception.EmailNotVerifiedException;
 import com.zerorisk.project.global.exception.InvalidCredentialsException;
 import com.zerorisk.project.global.exception.SocialAccountPasswordChangeException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
+import com.zerorisk.project.global.audit.UserActivityLogger;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,6 +37,7 @@ public class UserService {
     private final EmailVerificationService emailVerificationService;
     private final AccountRepository accountRepository;
     private final OpenBankingAuthRepository openBankingAuthRepository;
+    private final UserActivityLogger userActivityLogger;
 
     @Transactional
     public SignupResponse signup(SignupRequest request) {
@@ -59,6 +61,7 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
         emailVerificationService.clearVerification(request.email());
+        userActivityLogger.log(savedUser.getId(), "SIGNUP", "회원가입 (이메일)");
 
         return new SignupResponse(savedUser.getId(), savedUser.getEmail(), savedUser.getNickname());
     }
@@ -87,6 +90,7 @@ public class UserService {
         }
 
         user.updateProfile(request.nickname(), request.profileImageUrl());
+        userActivityLogger.log(userId, "UPDATE_PROFILE", "닉네임을 '" + request.nickname() + "'(으)로 변경");
         return MyProfileResponse.from(user);
     }
 
@@ -105,6 +109,7 @@ public class UserService {
 
         String encodedNewPassword = passwordEncoder.encode(request.newPassword());
         user.changePassword(encodedNewPassword);
+        userActivityLogger.log(userId, "CHANGE_PASSWORD", "비밀번호 변경");
     }
 
     @Transactional
@@ -119,6 +124,7 @@ public class UserService {
         }
 
         user.withdraw();
+        userActivityLogger.log(userId, "WITHDRAW", "회원 탈퇴");
     }
 
     @Transactional
@@ -130,5 +136,7 @@ public class UserService {
 
         openBankingAuthRepository.findByUserId(userId)
                 .ifPresent(openBankingAuthRepository::delete);
+
+        userActivityLogger.log(userId, "RESET_SEED_MONEY", "모의투자 자금 초기화");
     }
 }

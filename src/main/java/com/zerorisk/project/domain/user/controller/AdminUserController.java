@@ -4,8 +4,11 @@ import com.zerorisk.project.domain.user.dto.AdminUserResponse;
 import com.zerorisk.project.domain.user.dto.UserSuspendRequest;
 import com.zerorisk.project.domain.user.entity.UserStatus;
 import com.zerorisk.project.domain.user.service.AdminUserService;
+import com.zerorisk.project.global.audit.UserActivityLogResponse;
+import com.zerorisk.project.global.audit.UserActivityLogService;
 import com.zerorisk.project.global.security.CurrentUserId;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
+    private final UserActivityLogService userActivityLogService;
 
     @GetMapping
     public Page<AdminUserResponse> getUsers(
@@ -47,5 +51,10 @@ public class AdminUserController {
             @CurrentUserId Long adminId,
             @PathVariable Long userId) {
         return adminUserService.unsuspendUser(adminId, userId);
+    }
+
+    @GetMapping("/{userId}/activity-logs")
+    public List<UserActivityLogResponse> getActivityLogs(@PathVariable Long userId) {
+        return userActivityLogService.getLogs(userId);
     }
 }
