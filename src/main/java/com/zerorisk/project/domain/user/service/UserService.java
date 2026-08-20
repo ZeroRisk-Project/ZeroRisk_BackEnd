@@ -1,5 +1,11 @@
 package com.zerorisk.project.domain.user.service;
 
+import com.zerorisk.project.domain.account.entity.Account;
+import com.zerorisk.project.domain.account.entity.AccountType;
+import com.zerorisk.project.domain.account.exception.AccountErrorCode;
+import com.zerorisk.project.domain.account.exception.AccountException;
+import com.zerorisk.project.domain.account.repository.AccountRepository;
+import com.zerorisk.project.domain.openbanking.repository.OpenBankingAuthRepository;
 import com.zerorisk.project.domain.user.dto.ChangePasswordRequest;
 import com.zerorisk.project.domain.user.dto.MyProfileResponse;
 import com.zerorisk.project.domain.user.dto.NicknameCheckResponse;
@@ -28,6 +34,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationService emailVerificationService;
+    private final AccountRepository accountRepository;
+    private final OpenBankingAuthRepository openBankingAuthRepository;
 
     @Transactional
     public SignupResponse signup(SignupRequest request) {
@@ -111,5 +119,16 @@ public class UserService {
         }
 
         user.withdraw();
+    }
+
+    @Transactional
+    public void resetSeedMoney(Long userId) {
+        Account basicAccount = accountRepository.findByUserIdAndAccountType(userId, AccountType.BASIC)
+                .orElseThrow(() -> new AccountException(AccountErrorCode.NOT_FOUND));
+
+        basicAccount.zeroBalance();
+
+        openBankingAuthRepository.findByUserId(userId)
+                .ifPresent(openBankingAuthRepository::delete);
     }
 }
