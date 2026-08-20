@@ -7,6 +7,7 @@ import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.repository.UserRepository;
 import com.zerorisk.project.global.exception.InvalidCredentialsException;
 import com.zerorisk.project.global.exception.InvalidRefreshTokenException;
+import com.zerorisk.project.global.audit.UserActivityLogger;
 import com.zerorisk.project.global.security.JwtTokenProvider;
 import com.zerorisk.project.global.security.OpaqueTokenGenerator;
 import java.time.Duration;
@@ -28,6 +29,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final OpaqueTokenGenerator opaqueTokenGenerator;
     private final RedisTemplate<String, String> redisTemplate;
+    private final UserActivityLogger userActivityLogger;
 
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpirationMillis;
@@ -41,6 +43,7 @@ public class AuthService {
             throw new InvalidCredentialsException();
         }
 
+        userActivityLogger.log(user.getId(), "LOGIN", "로그인");
         return issueTokens(user);
     }
 

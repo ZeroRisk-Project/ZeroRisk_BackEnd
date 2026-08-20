@@ -14,6 +14,7 @@ import com.zerorisk.project.domain.openbanking.exception.OpenBankingErrorCode;
 import com.zerorisk.project.domain.openbanking.exception.OpenBankingException;
 import com.zerorisk.project.domain.openbanking.repository.MonthlyChargeSettingRepository;
 import com.zerorisk.project.domain.openbanking.repository.OpenBankingAuthRepository;
+import com.zerorisk.project.global.audit.UserActivityLogger;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class OpenBankingService {
     private final MonthlyChargeSettingRepository monthlyChargeSettingRepository;
     private final AccountRepository accountRepository;
     private final OpenBankingClient openBankingClient;
+    private final UserActivityLogger userActivityLogger;
 
     @Transactional
     public AuthenticateAccountResponse authenticateAccount(Long userId, String authorizationCode) {
@@ -60,6 +62,7 @@ public class OpenBankingService {
         }
 
         log.info("오픈뱅킹 계좌 인증 완료 - userId: {}, fintechUseNum: [REDACTED]", userId);
+        userActivityLogger.log(userId, "OPENBANKING_AUTH", account.bank_name() + " 계좌 인증 완료");
 
         return new AuthenticateAccountResponse(account.bank_name(), account.account_num_masked());
     }
@@ -100,6 +103,7 @@ public class OpenBankingService {
         auth.addReceivedPoints(requestedAmount);
 
         log.info("시드머니 충전 완료 - userId: {}, chargedAmount: {}", userId, requestedAmount);
+        userActivityLogger.log(userId, "CHARGE", requestedAmount + "원 충전");
     }
 
     private BigDecimal calculateAvailableAmount(OpenBankingAuth auth) {

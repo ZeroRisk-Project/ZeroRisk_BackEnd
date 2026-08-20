@@ -9,6 +9,7 @@ import com.zerorisk.project.global.exception.DuplicateFollowException;
 import com.zerorisk.project.global.exception.FollowNotFoundException;
 import com.zerorisk.project.global.exception.SelfFollowException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
+import com.zerorisk.project.global.audit.UserActivityLogger;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,7 @@ public class FollowService {
 
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+    private final UserActivityLogger userActivityLogger;
 
     @Transactional
     public void follow(Long followerId, Long followingId) {
@@ -43,6 +45,7 @@ public class FollowService {
                 .build();
 
         followRepository.save(follow);
+        userActivityLogger.log(followerId, "FOLLOW", "유저 #" + followingId + " 팔로우");
     }
 
     @Transactional
@@ -51,6 +54,7 @@ public class FollowService {
                 .orElseThrow(FollowNotFoundException::new);
 
         followRepository.delete(follow);
+        userActivityLogger.log(followerId, "UNFOLLOW", "유저 #" + followingId + " 언팔로우");
     }
 
     public Page<FollowUserResponse> getFollowers(Long userId, Pageable pageable) {
