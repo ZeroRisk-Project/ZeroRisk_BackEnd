@@ -7,6 +7,7 @@ import com.zerorisk.project.domain.post.dto.PostVoteRequest;
 import com.zerorisk.project.domain.post.entity.BoardType;
 import com.zerorisk.project.domain.post.service.PostService;
 import com.zerorisk.project.domain.post.service.PostVoteService;
+import com.zerorisk.project.global.security.CurrentUserId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,10 +33,9 @@ public class PostController {
     private final PostVoteService postVoteService;
 
     @PostMapping
-    public ResponseEntity<PostResponse> createPost(@Valid @RequestBody PostCreateRequest request) {
-        // TODO: JWT 로그인 완료 후 @AuthenticationPrincipal로 실제 userId 주입
-        Long userId = 1L;
-
+    public ResponseEntity<PostResponse> createPost(
+            @CurrentUserId Long userId,
+            @Valid @RequestBody PostCreateRequest request) {
         PostResponse response = postService.createPost(userId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -55,19 +55,14 @@ public class PostController {
 
     @PatchMapping("/{postId}")
     public ResponseEntity<PostResponse> updatePost(
+            @CurrentUserId Long userId,
             @PathVariable Long postId,
             @Valid @RequestBody PostUpdateRequest request) {
-        // TODO: JWT 로그인 완료 후 @AuthenticationPrincipal로 실제 userId 주입
-        Long userId = 1L;
-
         return ResponseEntity.ok(postService.updatePost(userId, postId, request));
     }
 
     @DeleteMapping("/{postId}")
-    public ResponseEntity<Void> deletePost(@PathVariable Long postId) {
-        // TODO: JWT 로그인 완료 후 @AuthenticationPrincipal로 실제 userId 주입
-        Long userId = 1L;
-
+    public ResponseEntity<Void> deletePost(@CurrentUserId Long userId, @PathVariable Long postId) {
         postService.deletePost(userId, postId);
 
         return ResponseEntity.noContent().build();
@@ -75,11 +70,9 @@ public class PostController {
 
     @PostMapping("/{postId}/votes")
     public ResponseEntity<Void> votePost(
+            @CurrentUserId Long userId,
             @PathVariable Long postId,
             @Valid @RequestBody PostVoteRequest request) {
-        // TODO: JWT 로그인 완료 후 @AuthenticationPrincipal로 실제 userId 주입
-        Long userId = 1L;
-
         postVoteService.vote(userId, postId, request);
 
         return ResponseEntity.noContent().build();

@@ -3,7 +3,9 @@ package com.zerorisk.project.domain.order.service;
 import com.zerorisk.project.domain.account.entity.Account;
 import com.zerorisk.project.domain.account.exception.AccountErrorCode;
 import com.zerorisk.project.domain.account.exception.AccountException;
+import com.zerorisk.project.domain.account.entity.AccountType;
 import com.zerorisk.project.domain.account.repository.AccountRepository;
+import com.zerorisk.project.domain.competition.repository.CompetitionAllowedStockRepository;
 import com.zerorisk.project.domain.order.dto.OrderCreateRequest;
 import com.zerorisk.project.domain.order.dto.OrderResponse;
 import com.zerorisk.project.domain.order.dto.OrderSummaryResponse;
@@ -21,6 +23,7 @@ import com.zerorisk.project.domain.portfolio.repository.HoldingRepository;
 import com.zerorisk.project.domain.stock.client.kis.KisQuoteClient;
 import com.zerorisk.project.domain.stock.entity.Stock;
 import com.zerorisk.project.domain.stock.repository.StockRepository;
+import com.zerorisk.project.global.audit.UserActivityLogger;
 import com.zerorisk.project.global.exception.StockNotFoundException;
 import java.math.BigDecimal;
 import java.util.Map;
@@ -42,6 +45,8 @@ public class OrderService {
     private final AccountRepository accountRepository;
     private final StockRepository stockRepository;
     private final KisQuoteClient kisQuoteClient;
+    private final CompetitionAllowedStockRepository competitionAllowedStockRepository;
+    private final UserActivityLogger userActivityLogger;
 
     @Transactional
     public OrderResponse createOrder(Long userId, OrderCreateRequest request) {
@@ -55,6 +60,13 @@ public class OrderService {
         Stock stock = stockRepository.findByCode(request.stockCode())
                 .filter(Stock::getActive)
                 .orElseThrow(StockNotFoundException::new);
+
+        if (account.getAccountType() == AccountType.COMPETITION) {
+            boolean hasRestriction = competitionAllowedStockRepository.existsByCompetitionId(account.getCompetitionId());
+            if (hasRestriction && !competitionAllowedStockRepository.existsByCompetitionIdAndStockId(account.getCompetitionId(), stock.getId())) {
+                throw new OrderException(OrderErrorCode.STOCK_NOT_ALLOWED_IN_COMPETITION);
+            }
+        }
 
         if (request.orderType() == OrderType.LIMIT && request.limitPrice() == null) {
             throw new OrderException(OrderErrorCode.LIMIT_PRICE_REQUIRED);
@@ -94,6 +106,11 @@ public class OrderService {
         if (fillable) {
             executeFill(order, account, holding, executionPrice);
         }
+
+        String actionType = request.side() == OrderSide.BUY ? "ORDER_BUY" : "ORDER_SELL";
+        userActivityLogger.log(userId, actionType,
+                String.format("%s %d주 %s (%s)", stock.getName(), request.quantity(),
+                        fillable ? "체결" : "접수(대기)", request.orderType()));
 
         return OrderResponse.from(order);
     }
@@ -136,6 +153,7 @@ public class OrderService {
         }
 
         order.cancel();
+        userActivityLogger.log(userId, "ORDER_CANCEL", "주문 취소 (주문번호 " + orderId + ")");
     }
 
     private void executeFill(Order order, Account account, Holding holding, BigDecimal executionPrice) {

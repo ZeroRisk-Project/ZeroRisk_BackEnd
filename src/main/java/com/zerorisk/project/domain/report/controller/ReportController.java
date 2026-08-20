@@ -3,6 +3,7 @@ package com.zerorisk.project.domain.report.controller;
 import com.zerorisk.project.domain.report.dto.ReportCreateRequest;
 import com.zerorisk.project.domain.report.dto.ReportResponse;
 import com.zerorisk.project.domain.report.service.ReportService;
+import com.zerorisk.project.global.security.CurrentUserId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,10 +21,9 @@ public class ReportController {
     private final ReportService reportService;
 
     @PostMapping
-    public ResponseEntity<ReportResponse> createReport(@Valid @RequestBody ReportCreateRequest request) {
-        // TODO: JWT 로그인 완료 후 @AuthenticationPrincipal로 실제 reporterId 주입
-        Long reporterId = 1L;
-
+    public ResponseEntity<ReportResponse> createReport(
+            @CurrentUserId Long reporterId,
+            @Valid @RequestBody ReportCreateRequest request) {
         ReportResponse response = reportService.createReport(reporterId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

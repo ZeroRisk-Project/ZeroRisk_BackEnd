@@ -9,6 +9,7 @@ import com.zerorisk.project.domain.post.entity.Post;
 import com.zerorisk.project.domain.post.repository.PostRepository;
 import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.repository.UserRepository;
+import com.zerorisk.project.global.audit.UserActivityLogger;
 import com.zerorisk.project.global.exception.PostAccessDeniedException;
 import com.zerorisk.project.global.exception.PostNotFoundException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
@@ -25,6 +26,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
+    private final UserActivityLogger userActivityLogger;
 
     @Transactional
     public PostResponse createPost(Long userId, PostCreateRequest request) {
@@ -40,6 +42,7 @@ public class PostService {
                 .build();
 
         Post savedPost = postRepository.save(post);
+        userActivityLogger.log(userId, "POST_CREATE", "[" + request.boardType() + "] " + request.title());
 
         // 방금 만든 글이라 댓글이 있을 수 없으므로 0 고정
         return PostResponse.from(savedPost, 0);
@@ -80,6 +83,7 @@ public class PostService {
         }
 
         post.update(request.title(), request.content());
+        userActivityLogger.log(userId, "POST_UPDATE", "게시글 #" + postId + " 수정");
 
         int commentCount = (int) commentRepository.countByPostIdAndIsDeletedFalse(postId);
 
@@ -96,5 +100,6 @@ public class PostService {
         }
 
         post.softDelete();
+        userActivityLogger.log(userId, "POST_DELETE", "게시글 #" + postId + " 삭제");
     }
 }

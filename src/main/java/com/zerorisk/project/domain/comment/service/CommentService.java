@@ -9,6 +9,7 @@ import com.zerorisk.project.domain.post.entity.Post;
 import com.zerorisk.project.domain.post.repository.PostRepository;
 import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.repository.UserRepository;
+import com.zerorisk.project.global.audit.UserActivityLogger;
 import com.zerorisk.project.global.exception.CommentAccessDeniedException;
 import com.zerorisk.project.global.exception.CommentNotFoundException;
 import com.zerorisk.project.global.exception.PostNotFoundException;
@@ -28,6 +29,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final UserActivityLogger userActivityLogger;
 
     @Transactional
     public CommentResponse createComment(Long userId, Long postId, CommentCreateRequest request) {
@@ -50,6 +52,7 @@ public class CommentService {
                 .build();
 
         Comment savedComment = commentRepository.save(comment);
+        userActivityLogger.log(userId, "COMMENT_CREATE", "게시글 #" + postId + "에 댓글 작성");
 
         return CommentResponse.from(savedComment);
     }
@@ -90,6 +93,7 @@ public class CommentService {
         }
 
         comment.update(request.content());
+        userActivityLogger.log(userId, "COMMENT_UPDATE", "댓글 #" + commentId + " 수정");
 
         return CommentResponse.from(comment);
     }
@@ -104,5 +108,6 @@ public class CommentService {
         }
 
         comment.softDelete();
+        userActivityLogger.log(userId, "COMMENT_DELETE", "댓글 #" + commentId + " 삭제");
     }
 }
