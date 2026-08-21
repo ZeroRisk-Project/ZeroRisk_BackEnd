@@ -64,6 +64,9 @@ public class Post {
     @Column(name = "LIKE_COUNT", nullable = false)
     private Integer likeCount;
 
+    @Column(name = "DISLIKE_COUNT", nullable = false)
+    private Integer dislikeCount;
+
     @Column(name = "IS_DELETED", nullable = false)
     private Boolean isDeleted;
 
@@ -83,6 +86,7 @@ public class Post {
         this.isProfitCert = false;
         this.viewCount = 0;
         this.likeCount = 0;
+        this.dislikeCount = 0;
         this.isDeleted = false;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -108,6 +112,14 @@ public class Post {
 
     public void decreaseLikeCount() {
         this.likeCount -= 1;
+    }
+
+    public void increaseDislikeCount() {
+        this.dislikeCount += 1;
+    }
+
+    public void decreaseDislikeCount() {
+        this.dislikeCount -= 1;
     }
 
     public boolean isOwner(Long userId) {
