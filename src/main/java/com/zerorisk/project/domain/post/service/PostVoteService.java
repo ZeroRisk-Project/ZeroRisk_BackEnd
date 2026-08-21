@@ -56,26 +56,35 @@ public class PostVoteService {
 
         postVoteRepository.save(vote);
 
-        if (voteType == VoteType.LIKE) {
-            post.increaseLikeCount();
-        }
+        increaseCount(post, voteType);
     }
 
     private void cancelVote(PostVote existingVote, Post post) {
-        if (existingVote.getVoteType() == VoteType.LIKE) {
-            post.decreaseLikeCount();
-        }
+        decreaseCount(post, existingVote.getVoteType());
 
         postVoteRepository.delete(existingVote);
     }
 
     private void changeVote(PostVote existingVote, Post post, VoteType newVoteType) {
-        if (newVoteType == VoteType.LIKE) {
-            post.increaseLikeCount();
-        } else {
-            post.decreaseLikeCount();
-        }
+        decreaseCount(post, existingVote.getVoteType());
+        increaseCount(post, newVoteType);
 
         existingVote.changeType(newVoteType);
+    }
+
+    private void increaseCount(Post post, VoteType voteType) {
+        if (voteType == VoteType.LIKE) {
+            post.increaseLikeCount();
+        } else {
+            post.increaseDislikeCount();
+        }
+    }
+
+    private void decreaseCount(Post post, VoteType voteType) {
+        if (voteType == VoteType.LIKE) {
+            post.decreaseLikeCount();
+        } else {
+            post.decreaseDislikeCount();
+        }
     }
 }
