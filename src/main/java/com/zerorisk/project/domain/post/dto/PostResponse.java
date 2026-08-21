@@ -18,10 +18,13 @@ public record PostResponse(
         int viewCount,
         int likeCount,
         int commentCount,
+        boolean isMine,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 
-    public static PostResponse from(Post post, int commentCount) {
+    public static PostResponse from(Post post, int commentCount, Long viewerId) {
+        boolean isMine = viewerId != null && post.getUser().getId().equals(viewerId);
+
         return new PostResponse(
                 post.getId(),
                 post.getBoardType(),
@@ -36,6 +39,7 @@ public record PostResponse(
                 post.getViewCount(),
                 post.getLikeCount(),
                 commentCount,
+                isMine,
                 post.getCreatedAt(),
                 post.getUpdatedAt());
     }

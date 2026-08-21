@@ -42,15 +42,18 @@ public class PostController {
     }
 
     @GetMapping("/{postId}")
-    public ResponseEntity<PostResponse> getPost(@PathVariable Long postId) {
-        return ResponseEntity.ok(postService.getPost(postId));
+    public ResponseEntity<PostResponse> getPost(
+            @CurrentUserId Long viewerId,
+            @PathVariable Long postId) {
+        return ResponseEntity.ok(postService.getPost(postId, viewerId));
     }
 
     @GetMapping
     public ResponseEntity<Page<PostResponse>> getPosts(
+            @CurrentUserId Long viewerId,
             @RequestParam(required = false) BoardType boardType,
             Pageable pageable) {
-        return ResponseEntity.ok(postService.getPosts(boardType, pageable));
+        return ResponseEntity.ok(postService.getPosts(boardType, pageable, viewerId));
     }
 
     @PatchMapping("/{postId}")
