@@ -8,9 +8,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.zerorisk.project.domain.account.exception.AccountException;
+import com.zerorisk.project.domain.announcement.exception.AnnouncementException;
 import com.zerorisk.project.domain.competition.exception.CompetitionException;
 import com.zerorisk.project.domain.openbanking.exception.OpenBankingException;
 import com.zerorisk.project.domain.order.exception.OrderException;
+import com.zerorisk.project.domain.systemnotice.exception.SystemNoticeException;
 
 import jakarta.validation.ConstraintViolationException;
 
@@ -186,6 +188,18 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(OrderException.class)
     public ResponseEntity<ErrorResponse> handleOrder(OrderException e) {
+        return ResponseEntity.status(e.getErrorCode().getStatus())
+                .body(new ErrorResponse(e.getErrorCode().getCode(), e.getMessage()));
+    }
+
+    @ExceptionHandler(AnnouncementException.class)
+    public ResponseEntity<ErrorResponse> handleAnnouncement(AnnouncementException e) {
+        return ResponseEntity.status(e.getErrorCode().getStatus())
+                .body(new ErrorResponse(e.getErrorCode().getCode(), e.getMessage()));
+    }
+
+    @ExceptionHandler(SystemNoticeException.class)
+    public ResponseEntity<ErrorResponse> handleSystemNotice(SystemNoticeException e) {
         return ResponseEntity.status(e.getErrorCode().getStatus())
                 .body(new ErrorResponse(e.getErrorCode().getCode(), e.getMessage()));
     }

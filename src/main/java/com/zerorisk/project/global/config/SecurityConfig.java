@@ -94,6 +94,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/profiles/me/settings").authenticated()
                         // 공개 프로필 조회 - 로그인 여부와 무관하게 접근 가능해야 함
                         .requestMatchers(HttpMethod.GET, "/api/v1/profiles/*").permitAll()
+                        // 공지사항 / 긴급 알림 - 비로그인 사용자도 봐야 함
+                        .requestMatchers(HttpMethod.GET, "/api/v1/announcements").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/system-notices/active").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.oidcUserService(customOAuth2UserService))
