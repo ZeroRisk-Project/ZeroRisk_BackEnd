@@ -39,8 +39,8 @@ public class ProfileSettings {
     private ProfileSettings(Long userId) {
         this.userId = userId;
         this.showReturnRate = true;
-        this.showPortfolio = true;
-        this.showTrades = true;
+        this.showPortfolio = false;
+        this.showTrades = false;
         this.showStats = true;
         this.showCompetitions = true;
     }
