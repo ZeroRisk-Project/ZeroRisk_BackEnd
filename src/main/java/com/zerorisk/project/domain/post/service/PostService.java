@@ -1,6 +1,7 @@
 package com.zerorisk.project.domain.post.service;
 
 import com.zerorisk.project.domain.comment.repository.CommentRepository;
+import com.zerorisk.project.domain.comment.repository.PostCommentCountProjection;
 import com.zerorisk.project.domain.post.dto.PostCreateRequest;
 import com.zerorisk.project.domain.post.dto.PostResponse;
 import com.zerorisk.project.domain.post.dto.PostUpdateRequest;
@@ -13,6 +14,9 @@ import com.zerorisk.project.global.audit.UserActivityLogger;
 import com.zerorisk.project.global.exception.PostAccessDeniedException;
 import com.zerorisk.project.global.exception.PostNotFoundException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -65,10 +69,18 @@ public class PostService {
                 ? postRepository.findByBoardTypeAndIsDeletedFalse(boardType, pageable)
                 : postRepository.findByIsDeletedFalse(pageable);
 
-        // 주의: 게시글마다 댓글 수 쿼리를 따로 날리는 N+1 구조.
-        // 지금은 동작 우선으로 두고, 트래픽 늘면 서브쿼리로 한 번에 가져오는 최적화 필요.
+        List<Long> postIds = posts.getContent().stream()
+                .map(Post::getId)
+                .toList();
+
+        // 게시글 목록 전체의 댓글 수를 쿼리 1번으로 집계 (기존 N+1 구조 개선)
+        Map<Long, Integer> commentCountByPostId = commentRepository.countByPostIdsAndIsDeletedFalse(postIds).stream()
+                .collect(Collectors.toMap(
+                        PostCommentCountProjection::getPostId,
+                        projection -> projection.getCommentCount().intValue()));
+
         return posts.map(post -> {
-            int commentCount = (int) commentRepository.countByPostIdAndIsDeletedFalse(post.getId());
+            int commentCount = commentCountByPostId.getOrDefault(post.getId(), 0);
             return PostResponse.from(post, commentCount);
         });
     }
