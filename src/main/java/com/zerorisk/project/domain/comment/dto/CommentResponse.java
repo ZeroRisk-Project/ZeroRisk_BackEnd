@@ -12,11 +12,13 @@ public record CommentResponse(
         Long parentId,
         String content,
         boolean isDeleted,
+        boolean isMine,
         LocalDateTime createdAt,
         List<CommentResponse> replies) {
 
-    public static CommentResponse from(Comment comment) {
+    public static CommentResponse from(Comment comment, Long viewerId) {
         Long parentId = comment.getParent() != null ? comment.getParent().getId() : null;
+        boolean isMine = viewerId != null && comment.getUser().getId().equals(viewerId);
 
         return new CommentResponse(
                 comment.getId(),
@@ -25,6 +27,7 @@ public record CommentResponse(
                 parentId,
                 comment.getIsDeleted() ? "삭제된 댓글입니다." : comment.getContent(),
                 comment.getIsDeleted(),
+                isMine,
                 comment.getCreatedAt(),
                 new ArrayList<>());
     }

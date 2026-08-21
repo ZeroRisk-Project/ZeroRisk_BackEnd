@@ -35,8 +35,10 @@ public class CommentController {
     }
 
     @GetMapping("/api/v1/posts/{postId}/comments")
-    public ResponseEntity<List<CommentResponse>> getComments(@PathVariable Long postId) {
-        return ResponseEntity.ok(commentService.getComments(postId));
+    public ResponseEntity<List<CommentResponse>> getComments(
+            @CurrentUserId Long viewerId,
+            @PathVariable Long postId) {
+        return ResponseEntity.ok(commentService.getComments(postId, viewerId));
     }
 
     @PatchMapping("/api/v1/comments/{commentId}")

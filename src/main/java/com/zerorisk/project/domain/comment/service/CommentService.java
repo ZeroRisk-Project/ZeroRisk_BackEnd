@@ -54,17 +54,17 @@ public class CommentService {
         Comment savedComment = commentRepository.save(comment);
         userActivityLogger.log(userId, "COMMENT_CREATE", "게시글 #" + postId + "에 댓글 작성");
 
-        return CommentResponse.from(savedComment);
+        return CommentResponse.from(savedComment, userId);
     }
 
-    public List<CommentResponse> getComments(Long postId) {
+    public List<CommentResponse> getComments(Long postId, Long viewerId) {
         List<Comment> comments = commentRepository.findByPostIdAndIsDeletedFalseOrderByCreatedAtAsc(postId);
 
         Map<Long, CommentResponse> responseById = new HashMap<>();
         List<CommentResponse> roots = new ArrayList<>();
 
         for (Comment comment : comments) {
-            responseById.put(comment.getId(), CommentResponse.from(comment));
+            responseById.put(comment.getId(), CommentResponse.from(comment, viewerId));
         }
 
         for (Comment comment : comments) {
@@ -95,7 +95,7 @@ public class CommentService {
         comment.update(request.content());
         userActivityLogger.log(userId, "COMMENT_UPDATE", "댓글 #" + commentId + " 수정");
 
-        return CommentResponse.from(comment);
+        return CommentResponse.from(comment, userId);
     }
 
     @Transactional

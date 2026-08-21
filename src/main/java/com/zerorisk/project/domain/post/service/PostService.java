@@ -49,11 +49,11 @@ public class PostService {
         userActivityLogger.log(userId, "POST_CREATE", "[" + request.boardType() + "] " + request.title());
 
         // 방금 만든 글이라 댓글이 있을 수 없으므로 0 고정
-        return PostResponse.from(savedPost, 0);
+        return PostResponse.from(savedPost, 0, userId);
     }
 
     @Transactional
-    public PostResponse getPost(Long postId) {
+    public PostResponse getPost(Long postId, Long viewerId) {
         Post post = postRepository.findByIdAndIsDeletedFalse(postId)
                 .orElseThrow(PostNotFoundException::new);
 
@@ -61,10 +61,10 @@ public class PostService {
 
         int commentCount = (int) commentRepository.countByPostIdAndIsDeletedFalse(postId);
 
-        return PostResponse.from(post, commentCount);
+        return PostResponse.from(post, commentCount, viewerId);
     }
 
-    public Page<PostResponse> getPosts(BoardType boardType, Pageable pageable) {
+    public Page<PostResponse> getPosts(BoardType boardType, Pageable pageable, Long viewerId) {
         Page<Post> posts = boardType != null
                 ? postRepository.findByBoardTypeAndIsDeletedFalse(boardType, pageable)
                 : postRepository.findByIsDeletedFalse(pageable);
@@ -81,7 +81,7 @@ public class PostService {
 
         return posts.map(post -> {
             int commentCount = commentCountByPostId.getOrDefault(post.getId(), 0);
-            return PostResponse.from(post, commentCount);
+            return PostResponse.from(post, commentCount, viewerId);
         });
     }
 
@@ -99,7 +99,7 @@ public class PostService {
 
         int commentCount = (int) commentRepository.countByPostIdAndIsDeletedFalse(postId);
 
-        return PostResponse.from(post, commentCount);
+        return PostResponse.from(post, commentCount, userId);
     }
 
     @Transactional
