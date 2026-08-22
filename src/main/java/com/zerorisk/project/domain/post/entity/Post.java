@@ -106,6 +106,10 @@ public class Post {
         this.isDeleted = true;
     }
 
+    public void restore() {
+        this.isDeleted = false;
+    }
+
     public void increaseLikeCount() {
         this.likeCount += 1;
     }

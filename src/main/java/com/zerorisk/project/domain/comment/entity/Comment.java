@@ -71,6 +71,10 @@ public class Comment {
         this.isDeleted = true;
     }
 
+    public void restore() {
+        this.isDeleted = false;
+    }
+
     public boolean isOwner(Long userId) {
         return this.user.getId().equals(userId);
     }
