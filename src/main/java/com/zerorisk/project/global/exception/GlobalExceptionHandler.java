@@ -1,5 +1,6 @@
 package com.zerorisk.project.global.exception;
 
+import com.zerorisk.project.domain.watchlist.exception.WatchlistException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -200,6 +201,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(SystemNoticeException.class)
     public ResponseEntity<ErrorResponse> handleSystemNotice(SystemNoticeException e) {
+        return ResponseEntity.status(e.getErrorCode().getStatus())
+                .body(new ErrorResponse(e.getErrorCode().getCode(), e.getMessage()));
+    }
+
+    @ExceptionHandler(WatchlistException.class)
+    public ResponseEntity<ErrorResponse> handleWatchlist(WatchlistException e) {
         return ResponseEntity.status(e.getErrorCode().getStatus())
                 .body(new ErrorResponse(e.getErrorCode().getCode(), e.getMessage()));
     }
