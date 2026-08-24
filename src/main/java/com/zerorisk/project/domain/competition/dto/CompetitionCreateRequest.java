@@ -13,6 +13,8 @@ public record CompetitionCreateRequest(
 
                 String description,
 
+                @NotNull @Future LocalDateTime recruitStartAt,
+
                 @NotNull @Future LocalDateTime startAt,
 
                 @NotNull @Future LocalDateTime endAt,

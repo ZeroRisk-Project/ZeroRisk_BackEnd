@@ -6,6 +6,8 @@ import com.zerorisk.project.domain.account.exception.AccountException;
 import com.zerorisk.project.domain.account.entity.AccountType;
 import com.zerorisk.project.domain.account.repository.AccountRepository;
 import com.zerorisk.project.domain.competition.repository.CompetitionAllowedStockRepository;
+import com.zerorisk.project.domain.competition.repository.CompetitionParticipantRepository;
+import com.zerorisk.project.domain.competition.service.CompetitionAssetService;
 import com.zerorisk.project.domain.order.dto.OrderCreateRequest;
 import com.zerorisk.project.domain.order.dto.OrderResponse;
 import com.zerorisk.project.domain.order.dto.OrderSummaryResponse;
@@ -46,6 +48,8 @@ public class OrderService {
     private final StockRepository stockRepository;
     private final KisQuoteClient kisQuoteClient;
     private final CompetitionAllowedStockRepository competitionAllowedStockRepository;
+    private final CompetitionParticipantRepository competitionParticipantRepository;
+    private final CompetitionAssetService competitionAssetService;
     private final UserActivityLogger userActivityLogger;
 
     @Transactional
@@ -176,6 +180,11 @@ public class OrderService {
         } else {
             account.addBalance(amount);
             applySellToHolding(holding, order.getQuantity());
+        }
+
+        if (account.getAccountType() == AccountType.COMPETITION) {
+            competitionParticipantRepository.findByAccountId(account.getId())
+                    .ifPresent(competitionAssetService::recalculate);
         }
     }
 

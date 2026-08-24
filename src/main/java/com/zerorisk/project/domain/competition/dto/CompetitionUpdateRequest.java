@@ -8,6 +8,8 @@ public record CompetitionUpdateRequest(
 
         String description,
 
+        LocalDateTime recruitStartAt,
+
         LocalDateTime startAt,
 
         LocalDateTime endAt,

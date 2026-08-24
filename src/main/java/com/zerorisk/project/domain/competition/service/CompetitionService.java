@@ -38,6 +38,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -54,6 +55,7 @@ public class CompetitionService {
         private final CompetitionRankingRepository competitionRankingRepository;
         private final PrizeHistoryRepository prizeHistoryRepository;
         private final CompetitionAllowedStockRepository competitionAllowedStockRepository;
+        private final CompetitionAssetService competitionAssetService;
         private final AdminActionLogger adminActionLogger;
         private final UserActivityLogger userActivityLogger;
 
@@ -148,8 +150,21 @@ public class CompetitionService {
         }
 
         public List<CompetitionRankingResponse> getRankings(Long competitionId) {
-                if (!competitionRepository.existsById(competitionId)) {
-                        throw new CompetitionException(CompetitionErrorCode.NOT_FOUND);
+                Competition competition = competitionRepository.findById(competitionId)
+                                .orElseThrow(() -> new CompetitionException(CompetitionErrorCode.NOT_FOUND));
+
+                // 모집중(아직 시작 전)에는 수익률 랭킹이 존재하지 않으므로 참여한 순서대로 보여준다.
+                if (competition.getStatus() == CompetitionStatus.SCHEDULED) {
+                        List<CompetitionParticipantAdminProjection> participants = competitionParticipantRepository
+                                        .findParticipantsWithUserInfo(competitionId);
+                        List<CompetitionRankingResponse> rankings = new ArrayList<>();
+                        for (int i = 0; i < participants.size(); i++) {
+                                CompetitionParticipantAdminProjection p = participants.get(i);
+                                rankings.add(new CompetitionRankingResponse(
+                                                i + 1, p.getUserId(), p.getNickname(),
+                                                p.getReturnRate(), p.getTotalAsset()));
+                        }
+                        return rankings;
                 }
 
                 return competitionRankingRepository.findRankingsByCompetitionId(competitionId).stream()
@@ -172,9 +187,14 @@ public class CompetitionService {
 
         @Transactional
         public Long createCompetition(CompetitionCreateRequest request, Long adminUserId) {
+                if (!request.recruitStartAt().isBefore(request.startAt())) {
+                        throw new CompetitionException(CompetitionErrorCode.INVALID_RECRUIT_PERIOD);
+                }
+
                 Competition competition = Competition.builder()
                                 .title(request.title())
                                 .description(request.description())
+                                .recruitStartAt(request.recruitStartAt())
                                 .startAt(request.startAt())
                                 .endAt(request.endAt())
                                 .seedMoney(request.seedMoney())
@@ -211,7 +231,7 @@ public class CompetitionService {
                 }
 
                 competition.updateInfo(
-                                request.title(), request.description(),
+                                request.title(), request.description(), request.recruitStartAt(),
                                 request.startAt(), request.endAt(), request.isPublic(),
                                 request.maxParticipants());
 
@@ -224,7 +244,8 @@ public class CompetitionService {
                 Competition competition = competitionRepository.findById(competitionId)
                                 .orElseThrow(() -> new CompetitionException(CompetitionErrorCode.NOT_FOUND));
 
-                if (competition.getStatus() == CompetitionStatus.ONGOING) {
+                if (competition.getStatus() == CompetitionStatus.ONGOING
+                                || competition.getStatus() == CompetitionStatus.CALCULATING) {
                         throw new CompetitionException(CompetitionErrorCode.CANNOT_DELETE_ONGOING);
                 }
 
@@ -241,6 +262,14 @@ public class CompetitionService {
 
         @Transactional
         public void distributePrizes(Long competitionId) {
+                Competition competition = competitionRepository.findById(competitionId)
+                                .orElseThrow(() -> new CompetitionException(CompetitionErrorCode.NOT_FOUND));
+
+                // 상금 지급 직전, 참가자 전원의 자산을 최신 시세 기준으로 딱 한 번 재평가한다.
+                List<CompetitionParticipant> participants = competitionParticipantRepository
+                                .findByCompetitionId(competitionId);
+                participants.forEach(competitionAssetService::recalculate);
+
                 List<CompetitionRankingProjection> rankings = competitionRankingRepository
                                 .findRankingsByCompetitionId(competitionId);
 
@@ -277,6 +306,8 @@ public class CompetitionService {
                                         ranking.getRankPosition(),
                                         prizeAmount);
                 }
+
+                competition.endCompetition();
         }
 
         public List<MyPrizeHistoryResponse> getMyPrizeHistory(Long userId) {

@@ -10,6 +10,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface CompetitionParticipantRepository extends JpaRepository<CompetitionParticipant, Long> {
     Optional<CompetitionParticipant> findByCompetitionIdAndUserId(Long competitionId, Long userId);
 
+    Optional<CompetitionParticipant> findByAccountId(Long accountId);
+
+    List<CompetitionParticipant> findByCompetitionId(Long competitionId);
+
     @Query(value = """
             SELECT
                 cp.RANK_POSITION AS rank,

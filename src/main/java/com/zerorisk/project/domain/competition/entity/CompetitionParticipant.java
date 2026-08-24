@@ -54,4 +54,9 @@ public class CompetitionParticipant {
     public void finalizeRank(Integer rankPosition) {
         this.rankPosition = rankPosition;
     }
+
+    public void updateAsset(BigDecimal totalAsset, BigDecimal returnRate) {
+        this.totalAsset = totalAsset;
+        this.returnRate = returnRate;
+    }
 }
