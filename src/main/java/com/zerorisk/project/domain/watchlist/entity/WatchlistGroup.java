@@ -40,4 +40,8 @@ public class WatchlistGroup {
         this.name = name;
         this.createdAt = LocalDateTime.now();
     }
+
+    public void rename(String name) {
+        this.name = name;
+    }
 }
