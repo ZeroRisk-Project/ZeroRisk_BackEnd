@@ -13,6 +13,8 @@ import com.zerorisk.project.domain.account.entity.AccountType;
 import com.zerorisk.project.domain.account.exception.AccountException;
 import com.zerorisk.project.domain.account.repository.AccountRepository;
 import com.zerorisk.project.domain.competition.repository.CompetitionAllowedStockRepository;
+import com.zerorisk.project.domain.competition.repository.CompetitionParticipantRepository;
+import com.zerorisk.project.domain.competition.service.CompetitionAssetService;
 import com.zerorisk.project.domain.order.dto.OrderCreateRequest;
 import com.zerorisk.project.domain.order.dto.OrderResponse;
 import com.zerorisk.project.domain.order.dto.OrderSummaryResponse;
@@ -70,6 +72,12 @@ class OrderServiceTest {
     private CompetitionAllowedStockRepository competitionAllowedStockRepository;
 
     @Mock
+    private CompetitionParticipantRepository competitionParticipantRepository;
+
+    @Mock
+    private CompetitionAssetService competitionAssetService;
+
+    @Mock
     private UserActivityLogger userActivityLogger;
 
     private OrderService orderService;
@@ -95,7 +103,7 @@ class OrderServiceTest {
     @DisplayName("시장가 매수는 즉시 체결되고 잔액 차감")
     @Test
     void 시장가_매수는_즉시_체결되고_잔액_차감() {
-        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, userActivityLogger);
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
         Account account = account(1L, new BigDecimal("1000000"));
         given(accountRepository.findByIdForUpdate(10L)).willReturn(Optional.of(account));
         given(stockRepository.findByCode("005930")).willReturn(Optional.of(stock()));
@@ -116,7 +124,7 @@ class OrderServiceTest {
     @DisplayName("지정가 매수는 조건을 만족하지 못하면 대기 상태 유지")
     @Test
     void 지정가_매수는_조건을_만족하지_못하면_대기_상태_유지() {
-        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, userActivityLogger);
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
         Account account = account(1L, new BigDecimal("1000000"));
         given(accountRepository.findByIdForUpdate(10L)).willReturn(Optional.of(account));
         given(stockRepository.findByCode("005930")).willReturn(Optional.of(stock()));
@@ -136,7 +144,7 @@ class OrderServiceTest {
     @DisplayName("잔액이 부족하면 예외 발생")
     @Test
     void 잔액이_부족하면_예외_발생() {
-        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, userActivityLogger);
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
         Account account = account(1L, new BigDecimal("1000"));
         given(accountRepository.findByIdForUpdate(10L)).willReturn(Optional.of(account));
         given(stockRepository.findByCode("005930")).willReturn(Optional.of(stock()));
@@ -154,7 +162,7 @@ class OrderServiceTest {
     @DisplayName("보유 수량보다 많은 매도를 시도하면 예외 발생")
     @Test
     void 보유_수량보다_많은_매도를_시도하면_예외_발생() {
-        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, userActivityLogger);
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
         Account account = account(1L, BigDecimal.ZERO);
         given(accountRepository.findByIdForUpdate(10L)).willReturn(Optional.of(account));
         given(stockRepository.findByCode("005930")).willReturn(Optional.of(stock()));
@@ -170,7 +178,7 @@ class OrderServiceTest {
     @DisplayName("다른 사용자의 계좌로 주문하면 예외 발생")
     @Test
     void 다른_사용자의_계좌로_주문하면_예외_발생() {
-        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, userActivityLogger);
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
         Account account = account(2L, new BigDecimal("1000000"));
         given(accountRepository.findByIdForUpdate(10L)).willReturn(Optional.of(account));
 
@@ -183,7 +191,7 @@ class OrderServiceTest {
     @DisplayName("미체결 주문을 취소하면 CANCELLED로 상태 전환")
     @Test
     void 미체결_주문을_취소하면_CANCELLED로_상태_전환() {
-        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, userActivityLogger);
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
         Account account = account(1L, BigDecimal.ZERO);
         Order order = Order.builder()
                 .accountId(10L)
@@ -204,7 +212,7 @@ class OrderServiceTest {
     @DisplayName("이미 체결된 주문을 취소할 시 예외 발생")
     @Test
     void 이미_체결된_주문을_취소할_시_예외_발생() {
-        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, userActivityLogger);
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
         Account account = account(1L, BigDecimal.ZERO);
         Order order = Order.builder()
                 .accountId(10L)
@@ -225,7 +233,7 @@ class OrderServiceTest {
     @DisplayName("존재하지 않는 주문을 취소할 시 예외 발생")
     @Test
     void 존재하지_않는_주문을_취소할_시_예외_발생() {
-        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, userActivityLogger);
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
         given(orderRepository.findById(5L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.cancelOrder(1L, 5L))
@@ -236,7 +244,7 @@ class OrderServiceTest {
     @DisplayName("다른 사용자의 주문을 취소할 시 예외 발생")
     @Test
     void 다른_사용자의_주문을_취소할_시_예외_발생() {
-        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, userActivityLogger);
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
         Account account = account(2L, BigDecimal.ZERO);
         Order order = Order.builder()
                 .accountId(10L)
@@ -256,7 +264,7 @@ class OrderServiceTest {
     @DisplayName("계좌의 주문 내역을 페이징으로 조회")
     @Test
     void 계좌의_주문_내역을_페이징으로_조회() {
-        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, userActivityLogger);
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
         Account account = account(1L, BigDecimal.ZERO);
         Order order = Order.builder()
                 .accountId(10L)
@@ -281,7 +289,7 @@ class OrderServiceTest {
     @DisplayName("상태 필터를 지정하면 해당 상태의 주문만 조회")
     @Test
     void 상태_필터를_지정하면_해당_상태의_주문만_조회() {
-        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, userActivityLogger);
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
         Account account = account(1L, BigDecimal.ZERO);
         Pageable pageable = PageRequest.of(0, 10);
         given(accountRepository.findById(10L)).willReturn(Optional.of(account));
@@ -297,7 +305,7 @@ class OrderServiceTest {
     @DisplayName("다른 사용자의 계좌로 주문 내역을 조회할 시 예외 발생")
     @Test
     void 다른_사용자의_계좌로_주문_내역을_조회할_시_예외_발생() {
-        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, userActivityLogger);
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
         Account account = account(2L, BigDecimal.ZERO);
         Pageable pageable = PageRequest.of(0, 10);
         given(accountRepository.findById(10L)).willReturn(Optional.of(account));

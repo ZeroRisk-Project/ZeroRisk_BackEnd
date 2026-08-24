@@ -9,6 +9,7 @@ public record CompetitionDetailResponse(
         Long id,
         String title,
         String description,
+        LocalDateTime recruitStartAt,
         LocalDateTime startAt,
         LocalDateTime endAt,
         CompetitionStatus status,
@@ -18,7 +19,8 @@ public record CompetitionDetailResponse(
     public static CompetitionDetailResponse from(Competition competition) {
         return new CompetitionDetailResponse(
                 competition.getId(), competition.getTitle(), competition.getDescription(),
-                competition.getStartAt(), competition.getEndAt(), competition.getStatus(),
-                competition.getSeedMoney(), competition.isJoinable(), competition.getMaxParticipants());
+                competition.getRecruitStartAt(), competition.getStartAt(), competition.getEndAt(),
+                competition.getStatus(), competition.getSeedMoney(), competition.isJoinable(),
+                competition.getMaxParticipants());
     }
 }

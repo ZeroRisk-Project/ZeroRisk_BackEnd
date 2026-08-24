@@ -4,7 +4,9 @@ import com.zerorisk.project.domain.competition.entity.PrizeHistory;
 import com.zerorisk.project.domain.competition.repository.CompetitionParticipantRepository;
 import com.zerorisk.project.domain.competition.repository.PrizeHistoryRepository;
 import com.zerorisk.project.domain.competition.repository.ProfileCompetitionProjection;
+import com.zerorisk.project.domain.comment.repository.CommentRepository;
 import com.zerorisk.project.domain.follow.repository.FollowRepository;
+import com.zerorisk.project.domain.post.repository.PostRepository;
 import com.zerorisk.project.domain.profile.dto.ProfileResponse;
 import com.zerorisk.project.domain.profile.dto.ProfileSettingsResponse;
 import com.zerorisk.project.domain.profile.dto.ProfileSettingsUpdateRequest;
@@ -31,6 +33,8 @@ public class ProfileService {
     private final CompetitionParticipantRepository competitionParticipantRepository;
     private final PrizeHistoryRepository prizeHistoryRepository;
     private final ProfileSettingsRepository profileSettingsRepository;
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
 
     // findOrCreateSettings가 최초 조회 시 로우를 새로 INSERT할 수 있어 readOnly 트랜잭션을 쓰면 안 됨
     @Transactional
@@ -50,10 +54,13 @@ public class ProfileService {
         // 본인이 보거나, 공개 설정이 켜져 있으면 보여줌
         boolean canSeeCompetitions = isMe || settings.getShowCompetitions();
 
+        long postCount = postRepository.countByUser_IdAndIsDeletedFalse(targetUserId);
+        long commentCount = commentRepository.countByUser_IdAndIsDeletedFalse(targetUserId);
+
         return new ProfileResponse(
                 target.getId(), target.getNickname(), target.getProfileImageUrl(),
                 target.getUserLevel(), target.getActivityScore(), target.getCreatedAt(),
-                followerCount, followingCount, isFollowing, isMe,
+                followerCount, followingCount, isFollowing, isMe, postCount, commentCount,
                 canSeeCompetitions ? getCompetitionHistory(targetUserId) : List.of());
     }
 

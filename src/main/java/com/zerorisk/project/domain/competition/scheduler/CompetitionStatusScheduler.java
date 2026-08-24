@@ -25,7 +25,21 @@ public class CompetitionStatusScheduler {
     @Transactional
     public void transitionCompetitionStatus() {
         startScheduledCompetitions();
-        endOngoingCompetitions();
+        startCalculatingCompetitions();
+    }
+
+    @Scheduled(cron = "0 */10 * * * *")
+    public void processCalculatingCompetitions() {
+        List<Competition> targets = competitionRepository.findByStatus(CompetitionStatus.CALCULATING);
+
+        for (Competition competition : targets) {
+            try {
+                competitionService.distributePrizes(competition.getId());
+                log.info("대회 종료 및 상금 지급 완료 - competitionId: {}", competition.getId());
+            } catch (Exception e) {
+                log.warn("대회 종료 처리 실패 - competitionId: {}, reason: {}", competition.getId(), e.getMessage());
+            }
+        }
     }
 
     private void startScheduledCompetitions() {
@@ -43,18 +57,17 @@ public class CompetitionStatusScheduler {
         }
     }
 
-    private void endOngoingCompetitions() {
+    private void startCalculatingCompetitions() {
         LocalDateTime now = LocalDateTime.now();
         List<Competition> targets = competitionRepository
                 .findByStatusAndEndAtBefore(CompetitionStatus.ONGOING, now);
 
         for (Competition competition : targets) {
             try {
-                competition.endCompetition();
-                competitionService.distributePrizes(competition.getId());
-                log.info("대회 종료 및 상금 지급 완료 - competitionId: {}", competition.getId());
+                competition.startCalculating();
+                log.info("대회 결과 집계 시작 - competitionId: {}", competition.getId());
             } catch (Exception e) {
-                log.warn("대회 종료 처리 실패 - competitionId: {}, reason: {}", competition.getId(), e.getMessage());
+                log.warn("대회 결과 집계 시작 실패 - competitionId: {}, reason: {}", competition.getId(), e.getMessage());
             }
         }
     }
