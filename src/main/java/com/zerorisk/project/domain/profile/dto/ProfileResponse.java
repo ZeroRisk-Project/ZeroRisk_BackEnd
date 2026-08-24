@@ -16,6 +16,8 @@ public record ProfileResponse(
         long followingCount,
         boolean isFollowing,
         boolean isMe,
+        long postCount,
+        long commentCount,
         List<ProfileCompetitionHistory> competitionHistory) {
 
     public record ProfileCompetitionHistory(

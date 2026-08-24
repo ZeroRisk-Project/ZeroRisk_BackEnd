@@ -17,4 +17,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     // 관리자 전용: 삭제된 게시글도 포함해서 전체 조회 (복구 대상 확인용)
     Page<Post> findAllBy(Pageable pageable);
+
+    long countByUser_IdAndIsDeletedFalse(Long userId);
 }

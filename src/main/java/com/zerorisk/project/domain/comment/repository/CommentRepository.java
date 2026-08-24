@@ -18,6 +18,8 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     long countByPostIdAndIsDeletedFalse(Long postId);
 
+    long countByUser_IdAndIsDeletedFalse(Long userId);
+
     @Query("SELECT c.id AS commentId, c.post.id AS postId FROM Comment c WHERE c.id IN :commentIds")
     List<CommentPostIdProjection> findPostIdsByCommentIds(@Param("commentIds") List<Long> commentIds);
 
