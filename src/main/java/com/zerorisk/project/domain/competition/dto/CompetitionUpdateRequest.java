@@ -10,6 +10,8 @@ public record CompetitionUpdateRequest(
 
         LocalDateTime recruitStartAt,
 
+        LocalDateTime recruitEndAt,
+
         LocalDateTime startAt,
 
         LocalDateTime endAt,

@@ -187,7 +187,8 @@ public class CompetitionService {
 
         @Transactional
         public Long createCompetition(CompetitionCreateRequest request, Long adminUserId) {
-                if (!request.recruitStartAt().isBefore(request.startAt())) {
+                if (!request.recruitStartAt().isBefore(request.recruitEndAt())
+                                || !request.recruitEndAt().isBefore(request.startAt())) {
                         throw new CompetitionException(CompetitionErrorCode.INVALID_RECRUIT_PERIOD);
                 }
 
@@ -195,6 +196,7 @@ public class CompetitionService {
                                 .title(request.title())
                                 .description(request.description())
                                 .recruitStartAt(request.recruitStartAt())
+                                .recruitEndAt(request.recruitEndAt())
                                 .startAt(request.startAt())
                                 .endAt(request.endAt())
                                 .seedMoney(request.seedMoney())
@@ -231,7 +233,7 @@ public class CompetitionService {
                 }
 
                 competition.updateInfo(
-                                request.title(), request.description(), request.recruitStartAt(),
+                                request.title(), request.description(), request.recruitStartAt(), request.recruitEndAt(),
                                 request.startAt(), request.endAt(), request.isPublic(),
                                 request.maxParticipants());
 
