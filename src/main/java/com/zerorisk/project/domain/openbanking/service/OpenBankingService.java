@@ -5,14 +5,10 @@ import com.zerorisk.project.domain.account.entity.AccountType;
 import com.zerorisk.project.domain.account.repository.AccountRepository;
 import com.zerorisk.project.domain.openbanking.dto.AuthenticateAccountResponse;
 import com.zerorisk.project.domain.openbanking.dto.BalanceLimitResponse;
-import com.zerorisk.project.domain.openbanking.dto.MonthlyChargeSettingRequest;
-import com.zerorisk.project.domain.openbanking.dto.MonthlyChargeSettingResponse;
 import com.zerorisk.project.domain.openbanking.dto.OpenBankingAuthResponse;
-import com.zerorisk.project.domain.openbanking.entity.MonthlyChargeSetting;
 import com.zerorisk.project.domain.openbanking.entity.OpenBankingAuth;
 import com.zerorisk.project.domain.openbanking.exception.OpenBankingErrorCode;
 import com.zerorisk.project.domain.openbanking.exception.OpenBankingException;
-import com.zerorisk.project.domain.openbanking.repository.MonthlyChargeSettingRepository;
 import com.zerorisk.project.domain.openbanking.repository.OpenBankingAuthRepository;
 import com.zerorisk.project.global.audit.UserActivityLogger;
 import java.math.BigDecimal;
@@ -28,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class OpenBankingService {
 
     private final OpenBankingAuthRepository openBankingAuthRepository;
-    private final MonthlyChargeSettingRepository monthlyChargeSettingRepository;
     private final AccountRepository accountRepository;
     private final OpenBankingClient openBankingClient;
     private final UserActivityLogger userActivityLogger;
@@ -113,56 +108,5 @@ public class OpenBankingService {
         BigDecimal remaining = actualBalance.subtract(auth.getTotalReceivedPoints());
 
         return remaining.max(BigDecimal.ZERO);
-    }
-
-    @Transactional
-    public MonthlyChargeSettingResponse registerMonthlyCharge(Long userId, MonthlyChargeSettingRequest request) {
-        if (monthlyChargeSettingRepository.findByUserId(userId).isPresent()) {
-            throw new OpenBankingException(OpenBankingErrorCode.MONTHLY_CHARGE_ALREADY_EXISTS);
-        }
-
-        MonthlyChargeSetting setting = MonthlyChargeSetting.builder()
-                .userId(userId)
-                .chargeDay(request.chargeDay())
-                .chargeAmount(request.chargeAmount())
-                .build();
-
-        monthlyChargeSettingRepository.save(setting);
-        return toResponse(setting);
-    }
-
-    public MonthlyChargeSettingResponse getMonthlyCharge(Long userId) {
-        MonthlyChargeSetting setting = findByUserIdOrThrow(userId);
-        return toResponse(setting);
-    }
-
-    @Transactional
-    public MonthlyChargeSettingResponse updateMonthlyCharge(Long userId, MonthlyChargeSettingRequest request) {
-        MonthlyChargeSetting setting = findByUserIdOrThrow(userId);
-        setting.updateSetting(request.chargeDay(), request.chargeAmount());
-        return toResponse(setting);
-    }
-
-    @Transactional
-    public void deactivateMonthlyCharge(Long userId) {
-        MonthlyChargeSetting setting = findByUserIdOrThrow(userId);
-        setting.deactivate();
-    }
-
-    @Transactional
-    public void activateMonthlyCharge(Long userId) {
-        MonthlyChargeSetting setting = findByUserIdOrThrow(userId);
-        setting.activate();
-    }
-
-    private MonthlyChargeSetting findByUserIdOrThrow(Long userId) {
-        return monthlyChargeSettingRepository.findByUserId(userId)
-                .orElseThrow(() -> new OpenBankingException(OpenBankingErrorCode.MONTHLY_CHARGE_SETTING_NOT_FOUND));
-    }
-
-    private MonthlyChargeSettingResponse toResponse(MonthlyChargeSetting setting) {
-        return new MonthlyChargeSettingResponse(
-                setting.getChargeDay(), setting.getChargeAmount(),
-                setting.getIsActive(), setting.getLastChargedAt());
     }
 }
