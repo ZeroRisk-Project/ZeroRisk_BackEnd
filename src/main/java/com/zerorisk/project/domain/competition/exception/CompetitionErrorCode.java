@@ -16,7 +16,7 @@ public enum CompetitionErrorCode {
     BASIC_ACCOUNT_REQUIRED("COMP_006", "대회 참가를 위해 먼저 오픈뱅킹 계좌 인증이 필요합니다.", HttpStatus.BAD_REQUEST),
     ARCHIVE_NOT_READY("COMP_007", "아직 종료되지 않은 대회입니다.", HttpStatus.BAD_REQUEST),
     CAPACITY_EXCEEDED("COMP_009", "대회 정원이 마감되었습니다.", HttpStatus.CONFLICT),
-    INVALID_RECRUIT_PERIOD("COMP_010", "모집 시작일은 대회 시작일보다 빨라야 합니다.", HttpStatus.BAD_REQUEST);
+    INVALID_RECRUIT_PERIOD("COMP_010", "모집 기간이 올바르지 않습니다. (모집 시작일 < 모집 마감일 < 대회 시작일)", HttpStatus.BAD_REQUEST);
 
     private final String code;
     private final String message;

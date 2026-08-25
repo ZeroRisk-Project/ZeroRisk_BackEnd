@@ -30,6 +30,9 @@ public class Competition {
     @Column(name = "RECRUIT_START_AT")
     private LocalDateTime recruitStartAt;
 
+    @Column(name = "RECRUIT_END_AT")
+    private LocalDateTime recruitEndAt;
+
     @Column(name = "START_AT", nullable = false)
     private LocalDateTime startAt;
 
@@ -56,11 +59,13 @@ public class Competition {
     private LocalDateTime createdAt;
 
     @Builder
-    private Competition(String title, String description, LocalDateTime recruitStartAt, LocalDateTime startAt,
-            LocalDateTime endAt, BigDecimal seedMoney, Boolean isPublic, Long createdBy, Integer maxParticipants) {
+    private Competition(String title, String description, LocalDateTime recruitStartAt, LocalDateTime recruitEndAt,
+            LocalDateTime startAt, LocalDateTime endAt, BigDecimal seedMoney, Boolean isPublic, Long createdBy,
+            Integer maxParticipants) {
         this.title = title;
         this.description = description;
         this.recruitStartAt = recruitStartAt;
+        this.recruitEndAt = recruitEndAt;
         this.startAt = startAt;
         this.endAt = endAt;
         this.status = CompetitionStatus.SCHEDULED;
@@ -87,15 +92,21 @@ public class Competition {
         if (this.status != CompetitionStatus.SCHEDULED) {
             return false;
         }
-        return this.recruitStartAt == null || !LocalDateTime.now().isBefore(this.recruitStartAt);
+        LocalDateTime now = LocalDateTime.now();
+        if (this.recruitStartAt != null && now.isBefore(this.recruitStartAt)) {
+            return false;
+        }
+        return this.recruitEndAt == null || !now.isAfter(this.recruitEndAt);
     }
 
-    public void updateInfo(String title, String description, LocalDateTime recruitStartAt, LocalDateTime startAt,
-            LocalDateTime endAt, Boolean isPublic, Integer maxParticipants) {
+    public void updateInfo(String title, String description, LocalDateTime recruitStartAt, LocalDateTime recruitEndAt,
+            LocalDateTime startAt, LocalDateTime endAt, Boolean isPublic, Integer maxParticipants) {
         this.title = title;
         this.description = description;
         if (recruitStartAt != null)
             this.recruitStartAt = recruitStartAt;
+        if (recruitEndAt != null)
+            this.recruitEndAt = recruitEndAt;
         if (startAt != null)
             this.startAt = startAt;
         if (endAt != null)
