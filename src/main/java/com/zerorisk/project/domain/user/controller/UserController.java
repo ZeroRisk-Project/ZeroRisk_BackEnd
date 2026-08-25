@@ -55,6 +55,11 @@ public class UserController {
         userService.resetSeedMoney(userId);
     }
 
+    @PostMapping("/practice-credit")
+    public void claimPracticeCredit(@CurrentUserId Long userId) {
+        userService.claimPracticeCredit(userId);
+    }
+
     @DeleteMapping
     public ResponseEntity<Void> withdraw(
             @CurrentUserId Long userId,
