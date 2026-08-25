@@ -72,6 +72,9 @@ public class User {
     @Column(name = "OAUTH_PROVIDER_ID", length = 50)
     private String oauthProviderId;
 
+    @Column(name = "HAS_CLAIMED_PRACTICE_CREDIT", nullable = false)
+    private Boolean hasClaimedPracticeCredit;
+
     @Builder
     private User(String email, String nickname, String password, OAuthProvider oauthProvider, String oauthProviderId) {
         this.email = email;
@@ -84,6 +87,7 @@ public class User {
         this.activityScore = 0;
         this.userLevel = 1;
         this.createdAt = LocalDateTime.now();
+        this.hasClaimedPracticeCredit = false;
     }
 
     public void updateProfile(String nickname, String profileImageUrl) {
@@ -113,6 +117,10 @@ public class User {
 
     public void addActivityScore(int score) {
         this.activityScore += score;
+    }
+
+    public void claimPracticeCredit() {
+        this.hasClaimedPracticeCredit = true;
     }
 
     public static User createOAuthUser(String email, String nickname, OAuthProvider provider, String providerId) {

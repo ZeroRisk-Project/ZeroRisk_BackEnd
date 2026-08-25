@@ -8,7 +8,8 @@ public record MyProfileResponse(
         Integer activityScore,
         Integer userLevel,
         String userRole,
-        String oauthProvider) {
+        String oauthProvider,
+        Boolean hasClaimedPracticeCredit) {
     public static MyProfileResponse from(com.zerorisk.project.domain.user.entity.User user) {
         return new MyProfileResponse(
                 user.getId(),
@@ -18,6 +19,7 @@ public record MyProfileResponse(
                 user.getActivityScore(),
                 user.getUserLevel(),
                 user.getUserRole().name(),
-                user.getOauthProvider() != null ? user.getOauthProvider().name() : null);
+                user.getOauthProvider() != null ? user.getOauthProvider().name() : null,
+                user.getHasClaimedPracticeCredit());
     }
 }

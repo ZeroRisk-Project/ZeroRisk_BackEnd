@@ -83,6 +83,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("USER_001", e.getMessage()));
     }
 
+    @ExceptionHandler(PracticeCreditNotEligibleException.class)
+    public ResponseEntity<ErrorResponse> handlePracticeCreditNotEligible(PracticeCreditNotEligibleException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse("USER_002", e.getMessage()));
+    }
+
     @ExceptionHandler(ReportNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleReportNotFound(ReportNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("REPORT_001", e.getMessage()));

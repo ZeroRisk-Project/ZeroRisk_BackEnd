@@ -19,10 +19,12 @@ import com.zerorisk.project.global.exception.DuplicateEmailException;
 import com.zerorisk.project.global.exception.DuplicateNicknameException;
 import com.zerorisk.project.global.exception.EmailNotVerifiedException;
 import com.zerorisk.project.global.exception.InvalidCredentialsException;
+import com.zerorisk.project.global.exception.PracticeCreditNotEligibleException;
 import com.zerorisk.project.global.exception.SocialAccountPasswordChangeException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
 import com.zerorisk.project.global.audit.UserActivityLogger;
 
+import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
+    private static final BigDecimal PRACTICE_CREDIT_AMOUNT = new BigDecimal("1000000");
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -138,5 +142,28 @@ public class UserService {
                 .ifPresent(openBankingAuthRepository::delete);
 
         userActivityLogger.log(userId, "RESET_SEED_MONEY", "모의투자 자금 초기화");
+    }
+
+    @Transactional
+    public void claimPracticeCredit(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        boolean alreadyAuthenticated = openBankingAuthRepository.findByUserId(userId).isPresent();
+        if (user.getHasClaimedPracticeCredit() || alreadyAuthenticated) {
+            throw new PracticeCreditNotEligibleException();
+        }
+
+        Account basicAccount = accountRepository.findByUserIdAndAccountType(userId, AccountType.BASIC)
+                .orElseGet(() -> accountRepository.save(
+                        Account.builder()
+                                .userId(userId)
+                                .accountType(AccountType.BASIC)
+                                .build()));
+
+        basicAccount.addSeedMoney(PRACTICE_CREDIT_AMOUNT);
+        user.claimPracticeCredit();
+
+        userActivityLogger.log(userId, "PRACTICE_CREDIT", "연습용 크레딧 100만원 지급");
     }
 }
