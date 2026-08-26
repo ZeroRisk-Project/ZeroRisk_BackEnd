@@ -21,10 +21,13 @@ import com.zerorisk.project.global.exception.EmailNotVerifiedException;
 import com.zerorisk.project.global.exception.InvalidCredentialsException;
 import com.zerorisk.project.global.exception.PracticeCreditNotEligibleException;
 import com.zerorisk.project.global.exception.SocialAccountPasswordChangeException;
+import com.zerorisk.project.global.exception.TooManyRequestsException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
 import com.zerorisk.project.global.audit.UserActivityLogger;
+import com.zerorisk.project.global.security.ratelimit.SlidingWindowCounter;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,6 +38,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private static final BigDecimal PRACTICE_CREDIT_AMOUNT = new BigDecimal("1000000");
+    private static final String SIGNUP_IP_KEY_PREFIX = "signup_ip:";
+    private static final Duration SIGNUP_IP_WINDOW = Duration.ofHours(1);
+    private static final int SIGNUP_IP_LIMIT = 10;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -42,9 +48,16 @@ public class UserService {
     private final AccountRepository accountRepository;
     private final OpenBankingAuthRepository openBankingAuthRepository;
     private final UserActivityLogger userActivityLogger;
+    private final SlidingWindowCounter slidingWindowCounter;
 
     @Transactional
-    public SignupResponse signup(SignupRequest request) {
+    public SignupResponse signup(SignupRequest request, String clientIp) {
+        String signupIpKey = SIGNUP_IP_KEY_PREFIX + clientIp;
+        if (slidingWindowCounter.count(signupIpKey, SIGNUP_IP_WINDOW) >= SIGNUP_IP_LIMIT) {
+            throw new TooManyRequestsException("잠시 후 다시 시도해주세요.");
+        }
+        slidingWindowCounter.record(signupIpKey, SIGNUP_IP_WINDOW);
+
         if (!emailVerificationService.isVerified(request.email())) {
             throw new EmailNotVerifiedException();
         }
