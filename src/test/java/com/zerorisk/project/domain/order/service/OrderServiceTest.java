@@ -313,4 +313,110 @@ class OrderServiceTest {
         assertThatThrownBy(() -> orderService.getOrders(1L, 10L, null, pageable))
                 .isInstanceOf(AccountException.class);
     }
+
+    @DisplayName("지정가 매수 주문이 목표가에 도달하면 체결")
+    @Test
+    void 지정가_매수_주문이_목표가에_도달하면_체결() {
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
+        Order order = Order.builder()
+                .accountId(10L)
+                .stockId(1L)
+                .side(OrderSide.BUY)
+                .orderType(OrderType.LIMIT)
+                .quantity(10L)
+                .limitPrice(new BigDecimal("60000"))
+                .build();
+        Account account = account(1L, new BigDecimal("1000000"));
+        Stock stock = stock();
+        ReflectionTestUtils.setField(stock, "id", 1L);
+        given(orderRepository.findByStatusAndOrderType(OrderStatus.PENDING, OrderType.LIMIT)).willReturn(List.of(order));
+        given(stockRepository.findAllById(List.of(1L))).willReturn(List.of(stock));
+        given(kisQuoteClient.fetchQuote("005930")).willReturn(new KisQuoteResponse.Output(
+                "55000", "1000", "5", "1.79", "88800", "49900"));
+        given(accountRepository.findByIdForUpdate(10L)).willReturn(Optional.of(account));
+        given(holdingRepository.findByAccountIdAndStockId(10L, 1L)).willReturn(Optional.empty());
+
+        orderService.fillPendingOrders();
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.FILLED);
+        assertThat(order.getFilledPrice()).isEqualByComparingTo("60000");
+        assertThat(account.getBalance()).isEqualByComparingTo("400000");
+    }
+
+    @DisplayName("지정가 매도 주문이 목표가에 도달하지 못하면 대기 상태를 유지")
+    @Test
+    void 지정가_매도_주문이_목표가에_도달하지_못하면_대기_상태를_유지() {
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
+        Order order = Order.builder()
+                .accountId(10L)
+                .stockId(1L)
+                .side(OrderSide.SELL)
+                .orderType(OrderType.LIMIT)
+                .quantity(10L)
+                .limitPrice(new BigDecimal("80000"))
+                .build();
+        Stock stock = stock();
+        ReflectionTestUtils.setField(stock, "id", 1L);
+        given(orderRepository.findByStatusAndOrderType(OrderStatus.PENDING, OrderType.LIMIT)).willReturn(List.of(order));
+        given(stockRepository.findAllById(List.of(1L))).willReturn(List.of(stock));
+        given(kisQuoteClient.fetchQuote("005930")).willReturn(new KisQuoteResponse.Output(
+                "75000", "1000", "5", "1.32", "88800", "49900"));
+
+        orderService.fillPendingOrders();
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
+        verify(accountRepository, never()).findByIdForUpdate(any());
+    }
+
+    @DisplayName("잔액이 부족하면 목표가에 도달해도 매수 주문을 체결하지 않음")
+    @Test
+    void 잔액이_부족하면_목표가에_도달해도_매수_주문을_체결하지_않음() {
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
+        Order order = Order.builder()
+                .accountId(10L)
+                .stockId(1L)
+                .side(OrderSide.BUY)
+                .orderType(OrderType.LIMIT)
+                .quantity(10L)
+                .limitPrice(new BigDecimal("60000"))
+                .build();
+        Account account = account(1L, new BigDecimal("1000"));
+        Stock stock = stock();
+        ReflectionTestUtils.setField(stock, "id", 1L);
+        given(orderRepository.findByStatusAndOrderType(OrderStatus.PENDING, OrderType.LIMIT)).willReturn(List.of(order));
+        given(stockRepository.findAllById(List.of(1L))).willReturn(List.of(stock));
+        given(kisQuoteClient.fetchQuote("005930")).willReturn(new KisQuoteResponse.Output(
+                "55000", "1000", "5", "1.79", "88800", "49900"));
+        given(accountRepository.findByIdForUpdate(10L)).willReturn(Optional.of(account));
+        given(holdingRepository.findByAccountIdAndStockId(10L, 1L)).willReturn(Optional.empty());
+
+        orderService.fillPendingOrders();
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
+        verify(tradeRepository, never()).save(any());
+    }
+
+    @DisplayName("현재가 조회에 실패하면 해당 주문은 체결하지 않음")
+    @Test
+    void 현재가_조회에_실패하면_해당_주문은_체결하지_않음() {
+        orderService = new OrderService(orderRepository, tradeRepository, holdingRepository, accountRepository, stockRepository, kisQuoteClient, competitionAllowedStockRepository, competitionParticipantRepository, competitionAssetService, userActivityLogger);
+        Order order = Order.builder()
+                .accountId(10L)
+                .stockId(1L)
+                .side(OrderSide.BUY)
+                .orderType(OrderType.LIMIT)
+                .quantity(10L)
+                .limitPrice(new BigDecimal("60000"))
+                .build();
+        Stock stock = stock();
+        ReflectionTestUtils.setField(stock, "id", 1L);
+        given(orderRepository.findByStatusAndOrderType(OrderStatus.PENDING, OrderType.LIMIT)).willReturn(List.of(order));
+        given(stockRepository.findAllById(List.of(1L))).willReturn(List.of(stock));
+        given(kisQuoteClient.fetchQuote("005930")).willThrow(new RuntimeException("KIS 조회 실패"));
+
+        orderService.fillPendingOrders();
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
+        verify(accountRepository, never()).findByIdForUpdate(any());
+    }
 }

@@ -28,18 +28,25 @@ import com.zerorisk.project.domain.stock.repository.StockRepository;
 import com.zerorisk.project.global.audit.UserActivityLogger;
 import com.zerorisk.project.global.exception.StockNotFoundException;
 import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderService {
+
+    private static final long KIS_QUOTE_REQUEST_INTERVAL_MILLIS = 600;
 
     private final OrderRepository orderRepository;
     private final TradeRepository tradeRepository;
@@ -158,6 +165,86 @@ public class OrderService {
 
         order.cancel();
         userActivityLogger.log(userId, "ORDER_CANCEL", "주문 취소 (주문번호 " + orderId + ")");
+    }
+
+    @Transactional
+    public void fillPendingOrders() {
+        List<Order> pendingOrders = orderRepository.findByStatusAndOrderType(OrderStatus.PENDING, OrderType.LIMIT);
+        if (pendingOrders.isEmpty()) {
+            return;
+        }
+
+        Map<Long, Stock> stocksById = stockRepository.findAllById(
+                        pendingOrders.stream().map(Order::getStockId).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(Stock::getId, Function.identity()));
+
+        Map<Long, BigDecimal> priceByStockId = fetchCurrentPrices(stocksById.values());
+
+        int filled = 0;
+        for (Order order : pendingOrders) {
+            BigDecimal currentPrice = priceByStockId.get(order.getStockId());
+            if (currentPrice == null || !isFillable(order, currentPrice)) {
+                continue;
+            }
+            if (tryFillPendingOrder(order)) {
+                filled++;
+            }
+        }
+        log.info("예약 주문 체결 배치 완료: {}건", filled);
+    }
+
+    private boolean tryFillPendingOrder(Order order) {
+        Account account = accountRepository.findByIdForUpdate(order.getAccountId())
+                .orElse(null);
+        if (account == null) {
+            return false;
+        }
+
+        Holding holding = holdingRepository.findByAccountIdAndStockId(order.getAccountId(), order.getStockId())
+                .orElse(null);
+        BigDecimal executionPrice = order.getLimitPrice();
+        BigDecimal amount = executionPrice.multiply(BigDecimal.valueOf(order.getQuantity()));
+
+        if (order.getSide() == OrderSide.BUY && account.getBalance().compareTo(amount) < 0) {
+            return false;
+        }
+        if (order.getSide() == OrderSide.SELL) {
+            long ownedQuantity = holding == null ? 0 : holding.getQuantity();
+            if (ownedQuantity < order.getQuantity()) {
+                return false;
+            }
+        }
+
+        executeFill(order, account, holding, executionPrice);
+        return true;
+    }
+
+    private boolean isFillable(Order order, BigDecimal currentPrice) {
+        return order.getSide() == OrderSide.BUY
+                ? currentPrice.compareTo(order.getLimitPrice()) <= 0
+                : currentPrice.compareTo(order.getLimitPrice()) >= 0;
+    }
+
+    private Map<Long, BigDecimal> fetchCurrentPrices(Collection<Stock> stocks) {
+        Map<Long, BigDecimal> priceByStockId = new HashMap<>();
+        for (Stock stock : stocks) {
+            try {
+                priceByStockId.put(stock.getId(), fetchCurrentPrice(stock.getCode()));
+            } catch (Exception e) {
+                log.warn("종목 {} 현재가 조회에 실패하여 이번 배치에서는 체결 판단을 건너뜁니다.", stock.getCode(), e);
+            }
+            sleepForThrottle();
+        }
+        return priceByStockId;
+    }
+
+    private void sleepForThrottle() {
+        try {
+            Thread.sleep(KIS_QUOTE_REQUEST_INTERVAL_MILLIS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private void executeFill(Order order, Account account, Holding holding, BigDecimal executionPrice) {
