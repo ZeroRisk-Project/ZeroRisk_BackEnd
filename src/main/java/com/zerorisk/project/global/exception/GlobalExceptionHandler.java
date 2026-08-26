@@ -13,6 +13,7 @@ import com.zerorisk.project.domain.announcement.exception.AnnouncementException;
 import com.zerorisk.project.domain.competition.exception.CompetitionException;
 import com.zerorisk.project.domain.openbanking.exception.OpenBankingException;
 import com.zerorisk.project.domain.order.exception.OrderException;
+import com.zerorisk.project.domain.pricealert.exception.PriceAlertException;
 import com.zerorisk.project.domain.systemnotice.exception.SystemNoticeException;
 
 import jakarta.validation.ConstraintViolationException;
@@ -224,6 +225,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(WatchlistException.class)
     public ResponseEntity<ErrorResponse> handleWatchlist(WatchlistException e) {
+        return ResponseEntity.status(e.getErrorCode().getStatus())
+                .body(new ErrorResponse(e.getErrorCode().getCode(), e.getMessage()));
+    }
+
+    @ExceptionHandler(PriceAlertException.class)
+    public ResponseEntity<ErrorResponse> handlePriceAlert(PriceAlertException e) {
         return ResponseEntity.status(e.getErrorCode().getStatus())
                 .body(new ErrorResponse(e.getErrorCode().getCode(), e.getMessage()));
     }
