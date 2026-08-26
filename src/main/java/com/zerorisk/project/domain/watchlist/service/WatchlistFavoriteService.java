@@ -3,6 +3,7 @@ package com.zerorisk.project.domain.watchlist.service;
 import com.zerorisk.project.domain.stock.entity.Stock;
 import com.zerorisk.project.domain.stock.repository.StockRepository;
 import com.zerorisk.project.domain.watchlist.dto.WatchlistFavoriteCreateRequest;
+import com.zerorisk.project.domain.watchlist.dto.WatchlistFavoriteMoveRequest;
 import com.zerorisk.project.domain.watchlist.dto.WatchlistFavoriteResponse;
 import com.zerorisk.project.domain.watchlist.entity.WatchlistFavorite;
 import com.zerorisk.project.domain.watchlist.entity.WatchlistGroup;
@@ -48,5 +49,45 @@ public class WatchlistFavoriteService {
         watchlistFavoriteRepository.save(favorite);
 
         return WatchlistFavoriteResponse.of(favorite, stock);
+    }
+
+    @Transactional
+    public void removeFavorite(Long userId, Long favoriteId) {
+        WatchlistFavorite favorite = findOwnedFavorite(userId, favoriteId);
+        watchlistFavoriteRepository.delete(favorite);
+    }
+
+    @Transactional
+    public WatchlistFavoriteResponse moveFavorite(Long userId, Long favoriteId, WatchlistFavoriteMoveRequest request) {
+        WatchlistFavorite favorite = findOwnedFavorite(userId, favoriteId);
+
+        WatchlistGroup targetGroup = watchlistGroupRepository.findById(request.groupId())
+                .orElseThrow(() -> new WatchlistException(WatchlistErrorCode.GROUP_NOT_FOUND));
+
+        if (!targetGroup.getUserId().equals(userId)) {
+            throw new WatchlistException(WatchlistErrorCode.ACCESS_DENIED);
+        }
+
+        if (watchlistFavoriteRepository.existsByGroupIdAndStockId(targetGroup.getId(), favorite.getStockId())) {
+            throw new WatchlistException(WatchlistErrorCode.FAVORITE_ALREADY_EXISTS);
+        }
+
+        favorite.moveToGroup(targetGroup.getId());
+
+        Stock stock = stockRepository.findById(favorite.getStockId())
+                .orElseThrow(StockNotFoundException::new);
+
+        return WatchlistFavoriteResponse.of(favorite, stock);
+    }
+
+    private WatchlistFavorite findOwnedFavorite(Long userId, Long favoriteId) {
+        WatchlistFavorite favorite = watchlistFavoriteRepository.findById(favoriteId)
+                .orElseThrow(() -> new WatchlistException(WatchlistErrorCode.FAVORITE_NOT_FOUND));
+
+        if (!favorite.getUserId().equals(userId)) {
+            throw new WatchlistException(WatchlistErrorCode.ACCESS_DENIED);
+        }
+
+        return favorite;
     }
 }

@@ -44,4 +44,8 @@ public class WatchlistFavorite {
         this.stockId = stockId;
         this.createdAt = LocalDateTime.now();
     }
+
+    public void moveToGroup(Long groupId) {
+        this.groupId = groupId;
+    }
 }
