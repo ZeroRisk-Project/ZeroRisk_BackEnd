@@ -10,6 +10,7 @@ import com.zerorisk.project.global.exception.InvalidRefreshTokenException;
 import com.zerorisk.project.global.audit.UserActivityLogger;
 import com.zerorisk.project.global.security.JwtTokenProvider;
 import com.zerorisk.project.global.security.OpaqueTokenGenerator;
+import com.zerorisk.project.global.security.captcha.RecaptchaVerifier;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,16 +31,23 @@ public class AuthService {
     private final OpaqueTokenGenerator opaqueTokenGenerator;
     private final RedisTemplate<String, String> redisTemplate;
     private final UserActivityLogger userActivityLogger;
+    private final LoginAttemptService loginAttemptService;
+    private final RecaptchaVerifier recaptchaVerifier;
 
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpirationMillis;
 
     @Transactional(readOnly = true)
-    public TokenResult login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.email())
-                .orElseThrow(InvalidCredentialsException::new);
+    public TokenResult login(LoginRequest request, String clientIp) {
+        if (loginAttemptService.isCaptchaRequired(request.email(), clientIp)) {
+            recaptchaVerifier.verify(request.recaptchaToken());
+        }
 
-        if (user.getPassword() == null || !passwordEncoder.matches(request.password(), user.getPassword())) {
+        User user = userRepository.findByEmail(request.email()).orElse(null);
+
+        if (user == null || user.getPassword() == null
+                || !passwordEncoder.matches(request.password(), user.getPassword())) {
+            loginAttemptService.recordFailure(request.email(), clientIp);
             throw new InvalidCredentialsException();
         }
 

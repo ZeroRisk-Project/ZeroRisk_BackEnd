@@ -192,6 +192,18 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("AUTH_008", e.getMessage()));
     }
 
+    @ExceptionHandler(CaptchaRequiredException.class)
+    public ResponseEntity<ErrorResponse> handleCaptchaRequired(CaptchaRequiredException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("AUTH_009", e.getMessage()));
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ErrorResponse> handleTooManyRequests(TooManyRequestsException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new ErrorResponse("AUTH_010", e.getMessage()));
+    }
+
     @ExceptionHandler(OrderException.class)
     public ResponseEntity<ErrorResponse> handleOrder(OrderException e) {
         return ResponseEntity.status(e.getErrorCode().getStatus())

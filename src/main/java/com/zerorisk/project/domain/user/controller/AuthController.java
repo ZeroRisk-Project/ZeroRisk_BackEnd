@@ -10,6 +10,7 @@ import com.zerorisk.project.domain.user.dto.SignupResponse;
 import com.zerorisk.project.domain.user.dto.VerifyCodeRequest;
 import com.zerorisk.project.domain.user.service.EmailVerificationService;
 import com.zerorisk.project.domain.user.service.UserService;
+import com.zerorisk.project.global.audit.ClientIpExtractor;
 import com.zerorisk.project.global.exception.InvalidRefreshTokenException;
 import com.zerorisk.project.global.security.CookieUtil;
 import jakarta.validation.Valid;
@@ -44,13 +45,15 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
-        SignupResponse response = userService.signup(request);
+        String clientIp = ClientIpExtractor.extract();
+        SignupResponse response = userService.signup(request, clientIp);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        AuthService.TokenResult result = authService.login(request);
+        String clientIp = ClientIpExtractor.extract();
+        AuthService.TokenResult result = authService.login(request, clientIp);
         return withTokenCookies(result);
     }
 
