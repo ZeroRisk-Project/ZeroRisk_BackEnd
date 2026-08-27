@@ -101,6 +101,7 @@ public class User {
 
     public void withdraw() {
         this.status = UserStatus.QUIT;
+        this.nickname = "탈퇴" + this.id; // NICKNAME 컬럼이 길이 12 제한이라 짧게 (id는 PK라 충돌 걱정 없음)
     }
 
     public void suspend(LocalDateTime until, String reason) {

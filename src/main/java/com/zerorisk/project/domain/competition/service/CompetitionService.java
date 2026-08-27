@@ -107,16 +107,24 @@ public class CompetitionService {
                         throw new CompetitionException(CompetitionErrorCode.ALREADY_JOINED);
                 }
 
+                long activeParticipationCount = competitionParticipantRepository.countByUserIdAndCompetitionStatusIn(
+                                userId, List.of(CompetitionStatus.SCHEDULED, CompetitionStatus.ONGOING,
+                                                CompetitionStatus.CALCULATING));
+                if (activeParticipationCount >= 2) {
+                        throw new CompetitionException(CompetitionErrorCode.MAX_PARTICIPATION_EXCEEDED);
+                }
+
                 accountRepository.findByUserIdAndAccountType(userId, AccountType.BASIC)
                                 .orElseThrow(() -> new CompetitionException(
                                                 CompetitionErrorCode.BASIC_ACCOUNT_REQUIRED));
 
+                // 대회 시작 전까지는 비활성 계좌 - 시드머니도 대회 시작 시점(startCompetition)에 지급
                 Account competitionAccount = Account.builder()
                                 .userId(userId)
                                 .accountType(AccountType.COMPETITION)
                                 .competitionId(competitionId)
                                 .build();
-                competitionAccount.addSeedMoney(competition.getSeedMoney());
+                competitionAccount.deactivate();
                 accountRepository.save(competitionAccount);
 
                 CompetitionParticipant participant = CompetitionParticipant.builder()
@@ -136,6 +144,26 @@ public class CompetitionService {
                 return competitionParticipantRepository.findByCompetitionIdAndUserId(competitionId, userId).isPresent();
         }
 
+        // 스케줄러 전용 - SCHEDULED -> ONGOING 전환과 동시에, 참가자 전원의 계좌를 활성화하고 시드머니를 지급한다.
+        @Transactional
+        public void startCompetition(Long competitionId) {
+                Competition competition = competitionRepository.findByIdForUpdate(competitionId)
+                                .orElseThrow(() -> new CompetitionException(CompetitionErrorCode.NOT_FOUND));
+
+                competition.startCompetition();
+
+                List<CompetitionParticipant> participants = competitionParticipantRepository
+                                .findByCompetitionId(competitionId);
+                for (CompetitionParticipant participant : participants) {
+                        Account account = accountRepository.findById(participant.getAccountId())
+                                        .orElseThrow(() -> new CompetitionException(CompetitionErrorCode.NOT_FOUND));
+                        account.activate();
+                        account.addSeedMoney(competition.getSeedMoney());
+                }
+        }
+
+        // 관리자 강제 퇴장 - 대회 진행 중(ONGOING) 언제든 가능하므로, 계좌가 이미 활성화되어
+        // 실제 거래가 있었을 수 있다. 계좌는 삭제하지 않고 잔액만 0으로 정리한다.
         @Transactional
         public void expelParticipant(Long competitionId, Long targetUserId) {
                 CompetitionParticipant participant = competitionParticipantRepository
@@ -147,6 +175,26 @@ public class CompetitionService {
 
                 account.zeroBalance();
                 competitionParticipantRepository.delete(participant);
+        }
+
+        // 본인 요청으로 참가 취소 - 대회가 아직 시작 전(SCHEDULED)일 때만 허용.
+        // 이 시점의 계좌는 항상 비활성 + 시드머니 미지급 상태이고(OrderService도 비활성 계좌 거래를 막음)
+        // 실제 거래 자체가 원천적으로 불가능했으므로 계좌를 완전히 삭제해도 안전하다.
+        @Transactional
+        public void cancelParticipation(Long userId, Long competitionId) {
+                Competition competition = competitionRepository.findByIdForUpdate(competitionId)
+                                .orElseThrow(() -> new CompetitionException(CompetitionErrorCode.NOT_FOUND));
+
+                if (competition.getStatus() != CompetitionStatus.SCHEDULED) {
+                        throw new CompetitionException(CompetitionErrorCode.CANNOT_CANCEL_AFTER_START);
+                }
+
+                CompetitionParticipant participant = competitionParticipantRepository
+                                .findByCompetitionIdAndUserId(competitionId, userId)
+                                .orElseThrow(() -> new CompetitionException(CompetitionErrorCode.NOT_FOUND));
+
+                competitionParticipantRepository.delete(participant);
+                accountRepository.deleteById(participant.getAccountId());
         }
 
         public List<CompetitionRankingResponse> getRankings(Long competitionId) {
@@ -264,8 +312,12 @@ public class CompetitionService {
 
         @Transactional
         public void distributePrizes(Long competitionId) {
-                Competition competition = competitionRepository.findById(competitionId)
+                Competition competition = competitionRepository.findByIdForUpdate(competitionId)
                                 .orElseThrow(() -> new CompetitionException(CompetitionErrorCode.NOT_FOUND));
+
+                if (competition.getStatus() == CompetitionStatus.ENDED) {
+                        return; // 이미 처리 완료된 대회면 아무것도 안 함 (스케줄러 중복 실행 등으로 인한 상금 중복 지급 방지)
+                }
 
                 // 상금 지급 직전, 참가자 전원의 자산을 최신 시세 기준으로 딱 한 번 재평가한다.
                 List<CompetitionParticipant> participants = competitionParticipantRepository
