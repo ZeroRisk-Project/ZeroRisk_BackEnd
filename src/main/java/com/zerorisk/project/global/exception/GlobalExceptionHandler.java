@@ -89,6 +89,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse("USER_002", e.getMessage()));
     }
 
+    @ExceptionHandler(PendingOrdersExistException.class)
+    public ResponseEntity<PendingOrdersExistResponse> handlePendingOrdersExist(PendingOrdersExistException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new PendingOrdersExistResponse("USER_003", e.getMessage(), e.getPendingOrders()));
+    }
+
     @ExceptionHandler(ReportNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleReportNotFound(ReportNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("REPORT_001", e.getMessage()));

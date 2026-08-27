@@ -49,7 +49,7 @@ public class CompetitionStatusScheduler {
 
         for (Competition competition : targets) {
             try {
-                competition.startCompetition();
+                competitionService.startCompetition(competition.getId());
                 log.info("대회 시작 처리 완료 - competitionId: {}", competition.getId());
             } catch (Exception e) {
                 log.warn("대회 시작 처리 실패 - competitionId: {}, reason: {}", competition.getId(), e.getMessage());

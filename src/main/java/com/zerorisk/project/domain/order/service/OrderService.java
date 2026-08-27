@@ -68,6 +68,10 @@ public class OrderService {
             throw new AccountException(AccountErrorCode.ACCESS_DENIED);
         }
 
+        if (!account.isActive()) {
+            throw new OrderException(OrderErrorCode.ACCOUNT_NOT_ACTIVE);
+        }
+
         Stock stock = stockRepository.findByCode(request.stockCode())
                 .filter(Stock::getActive)
                 .orElseThrow(StockNotFoundException::new);
@@ -165,6 +169,30 @@ public class OrderService {
 
         order.cancel();
         userActivityLogger.log(userId, "ORDER_CANCEL", "주문 취소 (주문번호 " + orderId + ")");
+    }
+
+    // 회원 탈퇴 전 체크용 - 이 유저의 모든 계좌(BASIC/COMPETITION)에 걸린 미체결 주문 목록을 반환한다.
+    // 비어있지 않으면 UserService.withdraw()가 이 목록을 실어 탈퇴를 막는다 (유저가 직접 정리하도록 유도).
+    @Transactional(readOnly = true)
+    public List<OrderSummaryResponse> getPendingOrders(Long userId) {
+        List<Long> accountIds = accountRepository.findByUserId(userId).stream()
+                .map(Account::getId)
+                .toList();
+
+        if (accountIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<Order> pendingOrders = orderRepository.findByAccountIdInAndStatus(accountIds, OrderStatus.PENDING);
+
+        Map<Long, Stock> stocksById = stockRepository.findAllById(
+                        pendingOrders.stream().map(Order::getStockId).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(Stock::getId, Function.identity()));
+
+        return pendingOrders.stream()
+                .map(order -> OrderSummaryResponse.of(order, stocksById.get(order.getStockId())))
+                .toList();
     }
 
     @Transactional

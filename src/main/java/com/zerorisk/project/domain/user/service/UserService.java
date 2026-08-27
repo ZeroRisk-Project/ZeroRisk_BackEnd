@@ -6,6 +6,8 @@ import com.zerorisk.project.domain.account.exception.AccountErrorCode;
 import com.zerorisk.project.domain.account.exception.AccountException;
 import com.zerorisk.project.domain.account.repository.AccountRepository;
 import com.zerorisk.project.domain.openbanking.repository.OpenBankingAuthRepository;
+import com.zerorisk.project.domain.order.dto.OrderSummaryResponse;
+import com.zerorisk.project.domain.order.service.OrderService;
 import com.zerorisk.project.domain.user.dto.ChangePasswordRequest;
 import com.zerorisk.project.domain.user.dto.MyProfileResponse;
 import com.zerorisk.project.domain.user.dto.NicknameCheckResponse;
@@ -19,6 +21,7 @@ import com.zerorisk.project.global.exception.DuplicateEmailException;
 import com.zerorisk.project.global.exception.DuplicateNicknameException;
 import com.zerorisk.project.global.exception.EmailNotVerifiedException;
 import com.zerorisk.project.global.exception.InvalidCredentialsException;
+import com.zerorisk.project.global.exception.PendingOrdersExistException;
 import com.zerorisk.project.global.exception.PracticeCreditNotEligibleException;
 import com.zerorisk.project.global.exception.SocialAccountPasswordChangeException;
 import com.zerorisk.project.global.exception.TooManyRequestsException;
@@ -28,6 +31,7 @@ import com.zerorisk.project.global.security.ratelimit.SlidingWindowCounter;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -49,6 +53,7 @@ public class UserService {
     private final OpenBankingAuthRepository openBankingAuthRepository;
     private final UserActivityLogger userActivityLogger;
     private final SlidingWindowCounter slidingWindowCounter;
+    private final OrderService orderService;
 
     @Transactional
     public SignupResponse signup(SignupRequest request, String clientIp) {
@@ -138,6 +143,11 @@ public class UserService {
             if (request.password() == null || !passwordEncoder.matches(request.password(), user.getPassword())) {
                 throw new InvalidCredentialsException();
             }
+        }
+
+        List<OrderSummaryResponse> pendingOrders = orderService.getPendingOrders(userId);
+        if (!pendingOrders.isEmpty()) {
+            throw new PendingOrdersExistException(pendingOrders);
         }
 
         user.withdraw();
