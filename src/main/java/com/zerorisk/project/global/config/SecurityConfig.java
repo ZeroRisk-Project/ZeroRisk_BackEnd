@@ -8,6 +8,7 @@ import com.zerorisk.project.global.security.oauth.OAuth2SuccessHandler;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -35,6 +36,9 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -42,12 +46,11 @@ public class SecurityConfig {
 
     // withCredentials: true로 쿠키를 주고받으려면 allowedOrigins를 * 대신 정확한 주소로 지정하고
     // allowCredentials(true)를 켜야 함. 둘 중 하나라도 안 맞으면 브라우저가 요청 자체를 막음.
-    // TODO: 실제 프론트 배포 주소 확정되면 allowedOrigins에 추가 필요 (지금은 로컬 개발 서버만 등록)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        configuration.setAllowedOrigins(List.of(allowedOrigins.split(",")));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
