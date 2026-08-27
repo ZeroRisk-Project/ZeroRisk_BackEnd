@@ -100,6 +100,9 @@ public class SecurityConfig {
                         // 공지사항 / 긴급 알림 - 비로그인 사용자도 봐야 함
                         .requestMatchers(HttpMethod.GET, "/api/v1/announcements").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/system-notices/active").permitAll()
+                        // 전체 랭킹 조회 - 로그인 없이도 접근 가능해야 함 (와일드카드 permitAll보다 먼저 배치)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/rankings/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/rankings").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.oidcUserService(customOAuth2UserService))

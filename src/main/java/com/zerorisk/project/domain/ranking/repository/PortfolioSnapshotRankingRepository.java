@@ -1,6 +1,7 @@
 package com.zerorisk.project.domain.ranking.repository;
 
 import com.zerorisk.project.domain.ranking.dto.AccountReturnRateRow;
+import com.zerorisk.project.domain.ranking.dto.AccountUserInfoRow;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -44,5 +45,26 @@ public class PortfolioSnapshotRankingRepository {
                 rs.getString("USER_LEVEL"),
                 rs.getBigDecimal("INITIAL_ASSET"),
                 rs.getBigDecimal("CURRENT_ASSET")));
+    }
+
+    // 기간별(일간/주간/월간) 랭킹 계산용 - 계좌 ID -> 유저 정보 매핑.
+    // 위 findAllReturnRates()와 동일하게 BASIC 계좌 + 수익률 공개 설정(PROFILE_SETTINGS.RETURN_RATE_PUBLIC)된 유저만 대상으로 함.
+    private static final String ACCOUNT_USER_INFO_QUERY = """
+            SELECT
+                a.ID AS ACCOUNT_ID,
+                u.ID AS USER_ID,
+                u.NICKNAME AS NICKNAME,
+                u.USER_LEVEL AS USER_LEVEL
+            FROM USERS u
+            JOIN ACCOUNTS a ON a.USER_ID = u.ID AND a.ACCOUNT_TYPE = 'BASIC'
+            JOIN PROFILE_SETTINGS ps ON ps.USER_ID = u.ID AND ps.RETURN_RATE_PUBLIC = 1
+            """;
+
+    public List<AccountUserInfoRow> findAllAccountUserInfo() {
+        return jdbcTemplate.query(ACCOUNT_USER_INFO_QUERY, (rs, rowNum) -> new AccountUserInfoRow(
+                rs.getLong("ACCOUNT_ID"),
+                rs.getLong("USER_ID"),
+                rs.getString("NICKNAME"),
+                rs.getString("USER_LEVEL")));
     }
 }
