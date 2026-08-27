@@ -36,6 +36,7 @@ public class PortfolioSnapshotRankingRepository {
                 FROM PORTFOLIO_SNAPSHOTS
             ) last_snap ON last_snap.ACCOUNT_ID = a.ID AND last_snap.RN = 1
             WHERE a.INITIAL_SEED_MONEY > 0
+              AND u.STATUS != 'QUIT'
             """;
 
     public List<AccountReturnRateRow> findAllReturnRates() {
@@ -58,6 +59,7 @@ public class PortfolioSnapshotRankingRepository {
             FROM USERS u
             JOIN ACCOUNTS a ON a.USER_ID = u.ID AND a.ACCOUNT_TYPE = 'BASIC'
             JOIN PROFILE_SETTINGS ps ON ps.USER_ID = u.ID AND ps.RETURN_RATE_PUBLIC = 1
+            WHERE u.STATUS != 'QUIT'
             """;
 
     public List<AccountUserInfoRow> findAllAccountUserInfo() {

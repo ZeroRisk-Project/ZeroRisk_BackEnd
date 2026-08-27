@@ -13,6 +13,7 @@ import com.zerorisk.project.global.security.CurrentUserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -47,6 +48,13 @@ public class CompetitionController {
             @PathVariable Long competitionId,
             @CurrentUserId Long userId) {
         return competitionService.joinCompetition(competitionId, userId);
+    }
+
+    @DeleteMapping("/{competitionId}/join")
+    public void cancelParticipation(
+            @PathVariable Long competitionId,
+            @CurrentUserId Long userId) {
+        competitionService.cancelParticipation(userId, competitionId);
     }
 
     @GetMapping("/{competitionId}/join-status")

@@ -4,6 +4,7 @@ import java.util.List;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import com.zerorisk.project.domain.competition.entity.CompetitionParticipant;
+import com.zerorisk.project.domain.competition.entity.CompetitionStatus;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -62,4 +63,12 @@ public interface CompetitionParticipantRepository extends JpaRepository<Competit
             ORDER BY cp.joinedAt DESC
             """)
     List<ProfileCompetitionProjection> findCompetitionHistoryByUserId(@Param("userId") Long userId);
+
+    @Query("""
+            SELECT COUNT(cp) FROM CompetitionParticipant cp
+            JOIN Competition c ON c.id = cp.competitionId
+            WHERE cp.userId = :userId
+            AND c.status IN :statuses
+            """)
+    long countByUserIdAndCompetitionStatusIn(@Param("userId") Long userId, @Param("statuses") List<CompetitionStatus> statuses);
 }

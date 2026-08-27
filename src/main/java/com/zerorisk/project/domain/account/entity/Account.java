@@ -7,6 +7,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(name = "ACCOUNTS")
@@ -36,6 +37,10 @@ public class Account {
     @Column(name = "COMPETITION_ID")
     private Long competitionId;
 
+    @ColumnDefault("1")
+    @Column(name = "IS_ACTIVE", nullable = false)
+    private boolean active;
+
     @Column(name = "CREATED_AT", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -46,6 +51,7 @@ public class Account {
         this.initialSeedMoney = BigDecimal.ZERO;
         this.accountType = accountType;
         this.competitionId = competitionId;
+        this.active = true;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -60,5 +66,13 @@ public class Account {
     public void addSeedMoney(BigDecimal amount) {
         this.balance = this.balance.add(amount);
         this.initialSeedMoney = this.initialSeedMoney.add(amount);
+    }
+
+    public void activate() {
+        this.active = true;
+    }
+
+    public void deactivate() {
+        this.active = false;
     }
 }

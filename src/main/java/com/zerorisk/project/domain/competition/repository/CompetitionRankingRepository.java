@@ -18,6 +18,7 @@ public interface CompetitionRankingRepository extends JpaRepository<CompetitionP
             FROM COMPETITION_PARTICIPANTS cp
             JOIN USERS u ON u.ID = cp.USER_ID
             WHERE cp.COMPETITION_ID = :competitionId
+              AND u.STATUS != 'QUIT'
             ORDER BY rankPosition
             """, nativeQuery = true)
     List<CompetitionRankingProjection> findRankingsByCompetitionId(@Param("competitionId") Long competitionId);

@@ -4,6 +4,7 @@ import com.zerorisk.project.domain.user.repository.UserRepository;
 import com.zerorisk.project.global.security.JwtAuthenticationFilter;
 import com.zerorisk.project.global.security.JwtTokenProvider;
 import com.zerorisk.project.global.security.oauth.CustomOAuth2UserService;
+import com.zerorisk.project.global.security.oauth.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.zerorisk.project.global.security.oauth.OAuth2SuccessHandler;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
@@ -35,6 +36,7 @@ public class SecurityConfig {
     private final UserRepository userRepository;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository;
 
     @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
@@ -105,6 +107,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/rankings").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(endpoint -> endpoint
+                                .authorizationRequestRepository(cookieAuthorizationRequestRepository))
                         .userInfoEndpoint(userInfo -> userInfo.oidcUserService(customOAuth2UserService))
                         .successHandler(oAuth2SuccessHandler))
                 .addFilterBefore(
