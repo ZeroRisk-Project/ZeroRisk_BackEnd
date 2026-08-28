@@ -10,6 +10,4 @@ public interface PortfolioSnapshotRepository extends JpaRepository<PortfolioSnap
 
     List<PortfolioSnapshot> findByAccountIdAndSnapshotDateBetweenOrderBySnapshotDateAsc(
             Long accountId, LocalDate from, LocalDate to);
-
-    List<PortfolioSnapshot> findAllBySnapshotDate(LocalDate snapshotDate);
 }
