@@ -3,6 +3,7 @@ package com.zerorisk.project.domain.competition.service;
 import com.zerorisk.project.domain.account.entity.Account;
 import com.zerorisk.project.domain.account.entity.AccountType;
 import com.zerorisk.project.domain.account.repository.AccountRepository;
+import com.zerorisk.project.domain.chat.cache.CompetitionParticipantCache;
 import com.zerorisk.project.domain.competition.dto.CompetitionArchiveResponse;
 import com.zerorisk.project.domain.competition.dto.CompetitionCreateRequest;
 import com.zerorisk.project.domain.competition.dto.CompetitionDetailResponse;
@@ -58,6 +59,7 @@ public class CompetitionService {
         private final CompetitionAssetService competitionAssetService;
         private final AdminActionLogger adminActionLogger;
         private final UserActivityLogger userActivityLogger;
+        private final CompetitionParticipantCache competitionParticipantCache;
 
         public Page<CompetitionSummaryResponse> getCompetitions(Pageable pageable) {
                 Page<Competition> competitions = competitionRepository.findByIsPublicTrue(pageable);
@@ -134,6 +136,7 @@ public class CompetitionService {
                                 .totalAsset(competition.getSeedMoney())
                                 .build();
                 competitionParticipantRepository.save(participant);
+                competitionParticipantCache.add(competitionId, userId);
 
                 userActivityLogger.log(userId, "JOIN_COMPETITION", "[" + competition.getTitle() + "] 대회 참가");
 
@@ -175,6 +178,7 @@ public class CompetitionService {
 
                 account.zeroBalance();
                 competitionParticipantRepository.delete(participant);
+                competitionParticipantCache.remove(competitionId, targetUserId);
         }
 
         // 본인 요청으로 참가 취소 - 대회가 아직 시작 전(SCHEDULED)일 때만 허용.
@@ -195,6 +199,7 @@ public class CompetitionService {
 
                 competitionParticipantRepository.delete(participant);
                 accountRepository.deleteById(participant.getAccountId());
+                competitionParticipantCache.remove(competitionId, userId);
         }
 
         public List<CompetitionRankingResponse> getRankings(Long competitionId) {
@@ -362,6 +367,7 @@ public class CompetitionService {
                 }
 
                 competition.endCompetition();
+                competitionParticipantCache.evictAll(competitionId);
         }
 
         public List<MyPrizeHistoryResponse> getMyPrizeHistory(Long userId) {
