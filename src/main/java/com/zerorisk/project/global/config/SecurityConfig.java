@@ -105,6 +105,11 @@ public class SecurityConfig {
                         // 전체 랭킹 조회 - 로그인 없이도 접근 가능해야 함 (와일드카드 permitAll보다 먼저 배치)
                         .requestMatchers(HttpMethod.GET, "/api/v1/rankings/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/rankings").permitAll()
+                        // 채팅 히스토리 조회 - 로그인 필요
+                        .requestMatchers(HttpMethod.GET, "/api/v1/chat/messages").authenticated()
+                        // WebSocket 핸드셰이크 엔드포인트 - 실제 인증은 STOMP 레벨(CustomHandshakeInterceptor,
+                        // StompChannelInterceptor)에서 별도로 처리하므로 여기서는 통과시켜야 함
+                        .requestMatchers("/ws/chat/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(endpoint -> endpoint
