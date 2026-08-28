@@ -17,8 +17,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// 주의: DDL에 (FOLLOWER_ID, FOLLOWING_ID) UNIQUE 제약이 아직 없음.
-// DB에 추가하기 전까지는 서비스 레이어에서 중복 팔로우 방지 필요.
 @Entity
 @Table(name = "FOLLOWS")
 @Getter
