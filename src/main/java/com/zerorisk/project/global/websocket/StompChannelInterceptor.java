@@ -6,8 +6,8 @@ import com.zerorisk.project.global.security.JwtTokenProvider;
 import com.zerorisk.project.global.websocket.dto.ChatChannelType;
 import com.zerorisk.project.global.websocket.ratelimit.ChatRateLimiter;
 import com.zerorisk.project.global.websocket.status.UserStatusChecker;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -19,7 +19,6 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class StompChannelInterceptor implements ChannelInterceptor {
 
     private static final long UNAUTHENTICATED_USER_ID = -1L;
@@ -30,6 +29,22 @@ public class StompChannelInterceptor implements ChannelInterceptor {
     private final UserStatusChecker userStatusChecker;
     private final CompetitionParticipantCache competitionParticipantCache;
     private final SimpMessagingTemplate messagingTemplate;
+
+    // SimpMessagingTemplate은 @EnableWebSocketMessageBroker(ChatWebSocketConfig)가 등록될 때
+    // 만들어지는데, ChatWebSocketConfig가 다시 이 인터셉터를 주입받다 보니 즉시(eager) 주입 시
+    // 순환참조가 발생한다. @Lazy로 실제 사용 시점까지 주입을 미뤄서 순환을 끊는다.
+    public StompChannelInterceptor(
+            JwtTokenProvider jwtTokenProvider,
+            ChatRateLimiter chatRateLimiter,
+            UserStatusChecker userStatusChecker,
+            CompetitionParticipantCache competitionParticipantCache,
+            @Lazy SimpMessagingTemplate messagingTemplate) {
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.chatRateLimiter = chatRateLimiter;
+        this.userStatusChecker = userStatusChecker;
+        this.competitionParticipantCache = competitionParticipantCache;
+        this.messagingTemplate = messagingTemplate;
+    }
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
