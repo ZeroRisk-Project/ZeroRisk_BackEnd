@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/holdings")
+@RequestMapping("/api/v1/portfolio/holdings")
 @RequiredArgsConstructor
 public class HoldingController {
 
