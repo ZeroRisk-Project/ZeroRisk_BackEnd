@@ -110,6 +110,8 @@ public class SecurityConfig {
                         // WebSocket 핸드셰이크 엔드포인트 - 실제 인증은 STOMP 레벨(CustomHandshakeInterceptor,
                         // StompChannelInterceptor)에서 별도로 처리하므로 여기서는 통과시켜야 함
                         .requestMatchers("/ws/chat/**").permitAll()
+                        // 관리자 API 일괄 규칙 - 각 컨트롤러의 개별 @PreAuthorize("hasRole('ADMIN')")를 여기로 통합
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(endpoint -> endpoint
