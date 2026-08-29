@@ -18,7 +18,8 @@ public enum CompetitionErrorCode {
     CAPACITY_EXCEEDED("COMP_009", "대회 정원이 마감되었습니다.", HttpStatus.CONFLICT),
     INVALID_RECRUIT_PERIOD("COMP_010", "모집 기간이 올바르지 않습니다. (모집 시작일 < 모집 마감일 < 대회 시작일)", HttpStatus.BAD_REQUEST),
     CANNOT_CANCEL_AFTER_START("COMP_011", "대회가 시작된 이후에는 참가를 취소할 수 없습니다.", HttpStatus.CONFLICT),
-    MAX_PARTICIPATION_EXCEEDED("COMP_012", "동시에 참가할 수 있는 대회는 최대 2개입니다.", HttpStatus.CONFLICT);
+    MAX_PARTICIPATION_EXCEEDED("COMP_012", "동시에 참가할 수 있는 대회는 최대 2개입니다.", HttpStatus.CONFLICT),
+    FAILED_RECALCULATION_NOT_FOUND("COMP_013", "재평가 실패 기록을 찾을 수 없습니다.", HttpStatus.NOT_FOUND);
 
     private final String code;
     private final String message;

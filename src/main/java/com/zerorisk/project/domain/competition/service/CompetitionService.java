@@ -60,6 +60,7 @@ public class CompetitionService {
         private final AdminActionLogger adminActionLogger;
         private final UserActivityLogger userActivityLogger;
         private final CompetitionParticipantCache competitionParticipantCache;
+        private final RecalculationMetrics recalculationMetrics;
 
         public Page<CompetitionSummaryResponse> getCompetitions(Pageable pageable) {
                 Page<Competition> competitions = competitionRepository.findByIsPublicTrue(pageable);
@@ -327,7 +328,11 @@ public class CompetitionService {
                 // 상금 지급 직전, 참가자 전원의 자산을 최신 시세 기준으로 딱 한 번 재평가한다.
                 List<CompetitionParticipant> participants = competitionParticipantRepository
                                 .findByCompetitionId(competitionId);
-                participants.forEach(competitionAssetService::recalculate);
+                for (CompetitionParticipant participant : participants) {
+                        long startedAt = System.currentTimeMillis();
+                        competitionAssetService.recalculate(participant); // 재시도(@Retryable) 끝까지 실패해도 @Recover가 흡수하므로 여기서 예외가 안 올라옴
+                        recalculationMetrics.recordCompletionTime(System.currentTimeMillis() - startedAt);
+                }
 
                 List<CompetitionRankingProjection> rankings = competitionRankingRepository
                                 .findRankingsByCompetitionId(competitionId);
