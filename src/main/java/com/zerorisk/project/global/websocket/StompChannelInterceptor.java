@@ -1,6 +1,7 @@
 package com.zerorisk.project.global.websocket;
 
 import com.zerorisk.project.domain.chat.cache.CompetitionParticipantCache;
+import com.zerorisk.project.domain.stock.repository.StockRepository;
 import com.zerorisk.project.global.exception.ChatAccessDeniedException;
 import com.zerorisk.project.global.security.JwtTokenProvider;
 import com.zerorisk.project.global.websocket.dto.ChatChannelType;
@@ -28,6 +29,7 @@ public class StompChannelInterceptor implements ChannelInterceptor {
     private final ChatRateLimiter chatRateLimiter;
     private final UserStatusChecker userStatusChecker;
     private final CompetitionParticipantCache competitionParticipantCache;
+    private final StockRepository stockRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     // SimpMessagingTemplate은 @EnableWebSocketMessageBroker(ChatWebSocketConfig)가 등록될 때
@@ -38,11 +40,13 @@ public class StompChannelInterceptor implements ChannelInterceptor {
             ChatRateLimiter chatRateLimiter,
             UserStatusChecker userStatusChecker,
             CompetitionParticipantCache competitionParticipantCache,
+            StockRepository stockRepository,
             @Lazy SimpMessagingTemplate messagingTemplate) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.chatRateLimiter = chatRateLimiter;
         this.userStatusChecker = userStatusChecker;
         this.competitionParticipantCache = competitionParticipantCache;
+        this.stockRepository = stockRepository;
         this.messagingTemplate = messagingTemplate;
     }
 
@@ -153,8 +157,13 @@ public class StompChannelInterceptor implements ChannelInterceptor {
             if (!competitionParticipantCache.isParticipant(competitionId, userId)) {
                 throw new ChatAccessDeniedException("대회 참가자만 입장할 수 있습니다.");
             }
+            return;
         }
-        // STOCK은 이 메서드에 도달했다는 것 자체가 이미 로그인된 상태(userId 확보)라는 뜻이라 별도 검증 없음
+
+        if (channelInfo.channelType() == ChatChannelType.STOCK
+                && stockRepository.findByCode(channelInfo.channelId()).isEmpty()) {
+            throw new ChatAccessDeniedException("존재하지 않는 종목입니다.");
+        }
     }
 
     private boolean isMessageTooLong(Message<?> message) {
