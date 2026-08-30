@@ -9,7 +9,6 @@ import com.zerorisk.project.domain.user.entity.UserStatus;
 import com.zerorisk.project.domain.user.repository.UserRepository;
 import com.zerorisk.project.global.audit.AdminActionLogger;
 import com.zerorisk.project.global.exception.UserNotFoundException;
-import com.zerorisk.project.global.websocket.SessionDisconnectPublisher;
 import com.zerorisk.project.global.websocket.status.UserStatusChecker;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -30,7 +29,6 @@ public class AdminUserService {
         private final OpenBankingAuthRepository openBankingAuthRepository;
         private final AdminActionLogger adminActionLogger;
         private final UserStatusChecker userStatusChecker;
-        private final SessionDisconnectPublisher sessionDisconnectPublisher;
 
         public long getTodayNewUserCount() {
                 LocalDateTime todayStart = LocalDate.now().atStartOfDay();
@@ -60,7 +58,6 @@ public class AdminUserService {
 
                 user.suspend(request.suspendedUntil(), request.reason());
                 userStatusChecker.evict(userId);
-                sessionDisconnectPublisher.publish(userId, "관리자에 의해 계정이 정지되었습니다.");
 
                 adminActionLogger.log(adminId, "SUSPEND", "USER", userId,
                                 String.format("%s님 정지 처리 (사유: %s)", user.getNickname(), request.reason()));
