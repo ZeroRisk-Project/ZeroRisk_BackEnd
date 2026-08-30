@@ -1,5 +1,6 @@
 package com.zerorisk.project.domain.report.service;
 
+import com.zerorisk.project.domain.chat.repository.ChatMessageRepository;
 import com.zerorisk.project.domain.comment.repository.CommentPostIdProjection;
 import com.zerorisk.project.domain.comment.repository.CommentRepository;
 import com.zerorisk.project.domain.post.repository.PostRepository;
@@ -34,6 +35,7 @@ public class ReportService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final ChatMessageRepository chatMessageRepository;
     private final AdminActionLogger adminActionLogger;
 
     @Transactional
@@ -69,7 +71,7 @@ public class ReportService {
             case POST -> postRepository.findByIdAndIsDeletedFalse(targetId).isPresent();
             case COMMENT -> commentRepository.findByIdAndIsDeletedFalse(targetId).isPresent();
             case USER -> userRepository.findById(targetId).isPresent();
-            case CHAT -> true; // 채팅 메시지 도메인이 아직 없어서 우선 통과, 도메인 생기면 검증 추가
+            case CHAT -> chatMessageRepository.findByIdAndIsDeletedFalse(targetId).isPresent();
         };
 
         if (!exists) {

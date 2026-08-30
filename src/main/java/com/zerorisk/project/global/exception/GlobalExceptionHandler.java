@@ -156,6 +156,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse("COMMENT_002", e.getMessage()));
     }
 
+    @ExceptionHandler(ChatAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleChatAccessDenied(ChatAccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse("CHAT_001", e.getMessage()));
+    }
+
+    @ExceptionHandler(ChatMessageNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleChatMessageNotFound(ChatMessageNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("CHAT_002", e.getMessage()));
+    }
+
+    @ExceptionHandler(ChatRateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleChatRateLimitExceeded(ChatRateLimitExceededException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(new ErrorResponse("CHAT_003", e.getMessage()));
+    }
+
     @ExceptionHandler(OpenBankingException.class)
     public ResponseEntity<ErrorResponse> handleOpenBanking(OpenBankingException e) {
         return ResponseEntity.status(e.getErrorCode().getStatus())
