@@ -12,6 +12,10 @@ import com.zerorisk.project.domain.watchlist.exception.WatchlistException;
 import com.zerorisk.project.domain.watchlist.repository.WatchlistFavoriteRepository;
 import com.zerorisk.project.domain.watchlist.repository.WatchlistGroupRepository;
 import com.zerorisk.project.global.exception.StockNotFoundException;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +53,32 @@ public class WatchlistFavoriteService {
         watchlistFavoriteRepository.save(favorite);
 
         return WatchlistFavoriteResponse.of(favorite, stock);
+    }
+
+    @Transactional(readOnly = true)
+    public List<WatchlistFavoriteResponse> getFavorites(Long userId, Long groupId) {
+        List<WatchlistFavorite> favorites;
+        if (groupId == null) {
+            favorites = watchlistFavoriteRepository.findByUserId(userId);
+        } else {
+            WatchlistGroup group = watchlistGroupRepository.findById(groupId)
+                    .orElseThrow(() -> new WatchlistException(WatchlistErrorCode.GROUP_NOT_FOUND));
+
+            if (!group.getUserId().equals(userId)) {
+                throw new WatchlistException(WatchlistErrorCode.ACCESS_DENIED);
+            }
+
+            favorites = watchlistFavoriteRepository.findByGroupId(group.getId());
+        }
+
+        Map<Long, Stock> stocksById = stockRepository.findAllById(
+                        favorites.stream().map(WatchlistFavorite::getStockId).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(Stock::getId, Function.identity()));
+
+        return favorites.stream()
+                .map(favorite -> WatchlistFavoriteResponse.of(favorite, stocksById.get(favorite.getStockId())))
+                .toList();
     }
 
     @Transactional
