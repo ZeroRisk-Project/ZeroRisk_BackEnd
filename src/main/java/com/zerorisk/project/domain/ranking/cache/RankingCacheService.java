@@ -61,7 +61,7 @@ public class RankingCacheService {
 
             if (cached != null) {
                 result.add(new RankingResponse(rank, cached.userId(), cached.nickname(), cached.userLevel(),
-                        cached.returnRate()));
+                        cached.returnRate(), cached.baseDate()));
             }
 
             rank++;
@@ -81,7 +81,7 @@ public class RankingCacheService {
         }
 
         return new RankingResponse(reverseRank.intValue() + 1, cached.userId(), cached.nickname(), cached.userLevel(),
-                cached.returnRate());
+                cached.returnRate(), cached.baseDate());
     }
 
     private String zsetKey(RankingPeriod period) {
