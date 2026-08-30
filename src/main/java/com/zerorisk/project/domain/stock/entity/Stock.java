@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -16,7 +17,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "STOCKS")
+@Table(
+        name = "STOCKS",
+        uniqueConstraints = @UniqueConstraint(name = "UK_STOCKS_CODE", columnNames = "CODE"))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Stock {
