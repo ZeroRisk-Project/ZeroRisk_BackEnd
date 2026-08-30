@@ -2,8 +2,10 @@ package com.zerorisk.project.domain.watchlist.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.zerorisk.project.domain.stock.entity.Market;
@@ -18,6 +20,7 @@ import com.zerorisk.project.domain.watchlist.exception.WatchlistException;
 import com.zerorisk.project.domain.watchlist.repository.WatchlistFavoriteRepository;
 import com.zerorisk.project.domain.watchlist.repository.WatchlistGroupRepository;
 import com.zerorisk.project.global.exception.StockNotFoundException;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -203,6 +206,59 @@ class WatchlistFavoriteServiceTest {
         WatchlistFavoriteMoveRequest request = new WatchlistFavoriteMoveRequest(11L);
 
         assertThatThrownBy(() -> watchlistFavoriteService.moveFavorite(1L, 20L, request))
+                .isInstanceOf(WatchlistException.class);
+    }
+
+    @DisplayName("사용자의 전체 관심종목을 조회")
+    @Test
+    void 사용자의_전체_관심종목을_조회() {
+        watchlistFavoriteService = new WatchlistFavoriteService(
+                watchlistFavoriteRepository, watchlistGroupRepository, stockRepository);
+        given(watchlistFavoriteRepository.findByUserId(1L)).willReturn(List.of(favorite(1L)));
+        given(stockRepository.findAllById(List.of(1L))).willReturn(List.of(stock()));
+
+        List<WatchlistFavoriteResponse> response = watchlistFavoriteService.getFavorites(1L, null);
+
+        assertThat(response).hasSize(1);
+        assertThat(response.get(0).stockCode()).isEqualTo("005930");
+    }
+
+    @DisplayName("그룹을 지정하면 해당 그룹의 관심종목만 조회")
+    @Test
+    void 그룹을_지정하면_해당_그룹의_관심종목만_조회() {
+        watchlistFavoriteService = new WatchlistFavoriteService(
+                watchlistFavoriteRepository, watchlistGroupRepository, stockRepository);
+        WatchlistGroup group = group(1L);
+        ReflectionTestUtils.setField(group, "id", 10L);
+        given(watchlistGroupRepository.findById(10L)).willReturn(Optional.of(group));
+        given(watchlistFavoriteRepository.findByGroupId(10L)).willReturn(List.of(favorite(1L)));
+        given(stockRepository.findAllById(List.of(1L))).willReturn(List.of(stock()));
+
+        List<WatchlistFavoriteResponse> response = watchlistFavoriteService.getFavorites(1L, 10L);
+
+        assertThat(response).hasSize(1);
+        verify(watchlistFavoriteRepository, never()).findByUserId(any());
+    }
+
+    @DisplayName("다른 사용자의 그룹으로 관심종목을 조회할 시 예외 발생")
+    @Test
+    void 다른_사용자의_그룹으로_관심종목을_조회할_시_예외_발생() {
+        watchlistFavoriteService = new WatchlistFavoriteService(
+                watchlistFavoriteRepository, watchlistGroupRepository, stockRepository);
+        given(watchlistGroupRepository.findById(10L)).willReturn(Optional.of(group(2L)));
+
+        assertThatThrownBy(() -> watchlistFavoriteService.getFavorites(1L, 10L))
+                .isInstanceOf(WatchlistException.class);
+    }
+
+    @DisplayName("존재하지 않는 그룹으로 관심종목을 조회할 시 예외 발생")
+    @Test
+    void 존재하지_않는_그룹으로_관심종목을_조회할_시_예외_발생() {
+        watchlistFavoriteService = new WatchlistFavoriteService(
+                watchlistFavoriteRepository, watchlistGroupRepository, stockRepository);
+        given(watchlistGroupRepository.findById(10L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> watchlistFavoriteService.getFavorites(1L, 10L))
                 .isInstanceOf(WatchlistException.class);
     }
 }
