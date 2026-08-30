@@ -36,7 +36,7 @@ public class RankingService {
 
         List<RankingResponse> rankings = rows.stream()
                 .map(row -> new RankingResponse(row.rankPosition(), row.userId(), row.nickname(), row.userLevel(),
-                        row.returnRate()))
+                        row.returnRate(), row.baseDate()))
                 .toList();
 
         rankingCacheService.refresh(period, rankings);

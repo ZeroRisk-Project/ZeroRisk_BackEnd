@@ -26,10 +26,12 @@ public class PortfolioSnapshotRankingRepository {
     }
 
     // 전체 누적 랭킹 - 초기 시드머니 대비 현재 자산으로 계산, RANK()가 정본
+    // ALL은 비교 기준일 개념이 없어 base_date를 NULL로 둔다.
     private static final String ALL_TIME_QUERY = """
             SELECT
                 RANK() OVER (ORDER BY return_rate DESC) AS rank_position,
-                user_id, nickname, user_level, return_rate
+                user_id, nickname, user_level, return_rate,
+                CAST(NULL AS DATE) AS base_date
             FROM (
                 SELECT u.ID AS user_id, u.NICKNAME AS nickname, u.USER_LEVEL AS user_level,
                        ROUND((last_snap.TOTAL_ASSET - a.INITIAL_SEED_MONEY)
@@ -48,10 +50,12 @@ public class PortfolioSnapshotRankingRepository {
             """;
 
     // 기간별 랭킹 - 오늘 스냅샷과 N일 전 스냅샷을 각각 조인해서 계산+순위 부여까지 한 번에 처리
+    // base_date는 비교에 실제로 쓰인 :baseDate 파라미터를 그대로 결과에 실어 보낸다.
     private static final String PERIOD_QUERY = """
             SELECT
                 RANK() OVER (ORDER BY return_rate DESC) AS rank_position,
-                user_id, nickname, user_level, return_rate
+                user_id, nickname, user_level, return_rate,
+                :baseDate AS base_date
             FROM (
                 SELECT u.ID AS user_id, u.NICKNAME AS nickname, u.USER_LEVEL AS user_level,
                        ROUND((latest.TOTAL_ASSET - base.TOTAL_ASSET) / base.TOTAL_ASSET * 100, 2) AS return_rate
@@ -81,6 +85,7 @@ public class PortfolioSnapshotRankingRepository {
                 rs.getLong("user_id"),
                 rs.getString("nickname"),
                 rs.getString("user_level"),
-                rs.getBigDecimal("return_rate"));
+                rs.getBigDecimal("return_rate"),
+                rs.getObject("base_date", LocalDate.class));
     }
 }
