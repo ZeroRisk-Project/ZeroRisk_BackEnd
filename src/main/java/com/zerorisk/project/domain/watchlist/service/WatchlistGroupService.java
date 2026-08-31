@@ -6,6 +6,7 @@ import com.zerorisk.project.domain.watchlist.dto.WatchlistGroupUpdateRequest;
 import com.zerorisk.project.domain.watchlist.entity.WatchlistGroup;
 import com.zerorisk.project.domain.watchlist.exception.WatchlistErrorCode;
 import com.zerorisk.project.domain.watchlist.exception.WatchlistException;
+import com.zerorisk.project.domain.watchlist.repository.WatchlistFavoriteRepository;
 import com.zerorisk.project.domain.watchlist.repository.WatchlistGroupRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class WatchlistGroupService {
 
     private final WatchlistGroupRepository watchlistGroupRepository;
+    private final WatchlistFavoriteRepository watchlistFavoriteRepository;
 
     @Transactional
     public WatchlistGroupResponse createGroup(Long userId, WatchlistGroupCreateRequest request) {
@@ -47,6 +49,7 @@ public class WatchlistGroupService {
     @Transactional
     public void deleteGroup(Long userId, Long groupId) {
         WatchlistGroup group = findOwnedGroup(userId, groupId);
+        watchlistFavoriteRepository.deleteByGroupId(group.getId());
         watchlistGroupRepository.delete(group);
     }
 

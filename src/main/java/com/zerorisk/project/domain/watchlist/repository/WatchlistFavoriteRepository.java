@@ -10,4 +10,6 @@ public interface WatchlistFavoriteRepository extends JpaRepository<WatchlistFavo
     List<WatchlistFavorite> findByUserId(Long userId);
 
     List<WatchlistFavorite> findByGroupId(Long groupId);
+
+    void deleteByGroupId(Long groupId);
 }
