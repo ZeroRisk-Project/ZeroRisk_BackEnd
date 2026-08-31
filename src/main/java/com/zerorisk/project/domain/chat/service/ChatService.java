@@ -3,6 +3,7 @@ package com.zerorisk.project.domain.chat.service;
 import com.zerorisk.project.domain.chat.dto.ChatMessageResponse;
 import com.zerorisk.project.domain.chat.entity.ChatMessage;
 import com.zerorisk.project.domain.chat.repository.ChatMessageRepository;
+import com.zerorisk.project.domain.competition.repository.CompetitionRepository;
 import com.zerorisk.project.domain.stock.repository.StockRepository;
 import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.repository.UserRepository;
@@ -22,6 +23,7 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
     private final StockRepository stockRepository;
+    private final CompetitionRepository competitionRepository;
 
     @Transactional
     public ChatMessageResponse saveMessage(
@@ -56,7 +58,11 @@ public class ChatService {
         if (channelType == ChatChannelType.STOCK && stockRepository.findByCode(channelId).isEmpty()) {
             throw new ChatAccessDeniedException("존재하지 않는 종목입니다.");
         }
-        // COMPETITION은 참가자 인가와 별개로 "채널 존재 여부"만 보는 거라, 여기서는 대회 자체 존재만 확인해도 되지만
-        // 히스토리 조회는 참가자가 아니어도 볼 수 있어야 하는지 정책이 불명확해 이번 범위에서는 STOCK만 처리
+
+        // 히스토리 조회는 참가자가 아니어도 가능(종료된 대회 다시보기 목적) - 대회 자체 존재 여부만 검증
+        if (channelType == ChatChannelType.COMPETITION
+                && !competitionRepository.existsById(Long.parseLong(channelId))) {
+            throw new ChatAccessDeniedException("존재하지 않는 대회입니다.");
+        }
     }
 }
