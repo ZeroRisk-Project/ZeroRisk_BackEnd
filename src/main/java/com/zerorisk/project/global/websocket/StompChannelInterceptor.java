@@ -1,6 +1,7 @@
 package com.zerorisk.project.global.websocket;
 
 import com.zerorisk.project.domain.chat.cache.CompetitionParticipantCache;
+import com.zerorisk.project.domain.competition.repository.CompetitionRepository;
 import com.zerorisk.project.domain.stock.repository.StockRepository;
 import com.zerorisk.project.global.exception.ChatAccessDeniedException;
 import com.zerorisk.project.global.security.JwtTokenProvider;
@@ -29,6 +30,7 @@ public class StompChannelInterceptor implements ChannelInterceptor {
     private final ChatRateLimiter chatRateLimiter;
     private final UserStatusChecker userStatusChecker;
     private final CompetitionParticipantCache competitionParticipantCache;
+    private final CompetitionRepository competitionRepository;
     private final StockRepository stockRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -40,12 +42,14 @@ public class StompChannelInterceptor implements ChannelInterceptor {
             ChatRateLimiter chatRateLimiter,
             UserStatusChecker userStatusChecker,
             CompetitionParticipantCache competitionParticipantCache,
+            CompetitionRepository competitionRepository,
             StockRepository stockRepository,
             @Lazy SimpMessagingTemplate messagingTemplate) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.chatRateLimiter = chatRateLimiter;
         this.userStatusChecker = userStatusChecker;
         this.competitionParticipantCache = competitionParticipantCache;
+        this.competitionRepository = competitionRepository;
         this.stockRepository = stockRepository;
         this.messagingTemplate = messagingTemplate;
     }
@@ -153,6 +157,10 @@ public class StompChannelInterceptor implements ChannelInterceptor {
     private void validateChannelAccess(Long userId, ChannelInfo channelInfo) {
         if (channelInfo.channelType() == ChatChannelType.COMPETITION) {
             Long competitionId = Long.parseLong(channelInfo.channelId());
+
+            if (!competitionRepository.existsById(competitionId)) {
+                throw new ChatAccessDeniedException("존재하지 않는 대회입니다.");
+            }
 
             if (!competitionParticipantCache.isParticipant(competitionId, userId)) {
                 throw new ChatAccessDeniedException("대회 참가자만 입장할 수 있습니다.");
