@@ -11,15 +11,20 @@ import com.zerorisk.project.domain.stock.client.kis.dto.KisDailyChartResponse;
 import com.zerorisk.project.domain.stock.client.kis.dto.KisMinuteChartResponse;
 import com.zerorisk.project.domain.stock.dto.ChartCandleResponse;
 import com.zerorisk.project.domain.stock.dto.ChartInterval;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class StockChartServiceTest {
+
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     @Mock
     private KisChartClient kisChartClient;
@@ -52,6 +57,41 @@ class StockChartServiceTest {
         stockChartService.getChart("005930", ChartInterval.WEEK);
 
         verify(kisChartClient).fetchDailyChart(eq("005930"), eq("W"), anyString(), anyString());
+    }
+
+    private void 조회_기간_검증(ChartInterval interval, String periodCode, int lookbackDays) {
+        stockChartService = new StockChartService(kisChartClient);
+        given(kisChartClient.fetchDailyChart(eq("005930"), eq(periodCode), anyString(), anyString()))
+                .willReturn(List.of());
+
+        stockChartService.getChart("005930", interval);
+
+        ArgumentCaptor<String> startDate = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> endDate = ArgumentCaptor.forClass(String.class);
+        verify(kisChartClient)
+                .fetchDailyChart(eq("005930"), eq(periodCode), startDate.capture(), endDate.capture());
+
+        LocalDate today = LocalDate.now();
+        assertThat(startDate.getValue()).isEqualTo(today.minusDays(lookbackDays).format(DATE_FORMAT));
+        assertThat(endDate.getValue()).isEqualTo(today.format(DATE_FORMAT));
+    }
+
+    @DisplayName("DAY 조회 시 100일 전부터 오늘까지 조회")
+    @Test
+    void DAY_조회_시_100일_전부터_오늘까지_조회() {
+        조회_기간_검증(ChartInterval.DAY, "D", 100);
+    }
+
+    @DisplayName("WEEK 조회 시 700일 전부터 오늘까지 조회")
+    @Test
+    void WEEK_조회_시_700일_전부터_오늘까지_조회() {
+        조회_기간_검증(ChartInterval.WEEK, "W", 700);
+    }
+
+    @DisplayName("MONTH 조회 시 3000일 전부터 오늘까지 조회")
+    @Test
+    void MONTH_조회_시_3000일_전부터_오늘까지_조회() {
+        조회_기간_검증(ChartInterval.MONTH, "M", 3000);
     }
 
     @DisplayName("MINUTE 조회 시 분봉 API 호출")
