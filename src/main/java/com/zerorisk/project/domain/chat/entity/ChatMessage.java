@@ -52,6 +52,9 @@ public class ChatMessage {
     @Column(name = "IS_DELETED", nullable = false)
     private Boolean isDeleted;
 
+    @Column(name = "IS_REPORTED", nullable = false)
+    private Boolean isReported;
+
     @Column(name = "CREATED_AT", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -62,11 +65,16 @@ public class ChatMessage {
         this.user = user;
         this.message = message;
         this.isDeleted = false;
+        this.isReported = false;
         this.createdAt = LocalDateTime.now();
     }
 
     public void softDelete() {
         this.isDeleted = true;
+    }
+
+    public void markAsReported() {
+        this.isReported = true;
     }
 
     public boolean isOwner(Long userId) {

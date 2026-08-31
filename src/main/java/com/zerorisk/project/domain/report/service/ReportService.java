@@ -1,5 +1,6 @@
 package com.zerorisk.project.domain.report.service;
 
+import com.zerorisk.project.domain.chat.entity.ChatMessage;
 import com.zerorisk.project.domain.chat.repository.ChatMessageRepository;
 import com.zerorisk.project.domain.comment.repository.CommentPostIdProjection;
 import com.zerorisk.project.domain.comment.repository.CommentRepository;
@@ -54,7 +55,19 @@ public class ReportService {
 
         Report savedReport = reportRepository.save(report);
 
+        markTargetAsReportedIfChat(request.targetType(), request.targetId());
+
         return ReportResponse.from(savedReport, resolveTargetPostId(savedReport.getTargetType(), savedReport.getTargetId()));
+    }
+
+    // 신고된 채팅 메시지는 보관 정책(배치 삭제)에서 제외해야 하므로 플래그를 세팅
+    private void markTargetAsReportedIfChat(TargetType targetType, Long targetId) {
+        if (targetType != TargetType.CHAT) {
+            return;
+        }
+
+        chatMessageRepository.findByIdAndIsDeletedFalse(targetId)
+                .ifPresent(ChatMessage::markAsReported);
     }
 
     private Long resolveTargetPostId(TargetType targetType, Long targetId) {
