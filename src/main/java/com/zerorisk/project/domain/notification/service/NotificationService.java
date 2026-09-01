@@ -23,10 +23,13 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final AlertSettingsService alertSettingsService;
-    private final SseEmitterService sseEmitterService;
+    private final NotificationSseSender notificationSseSender;
 
     // 다른 도메인(주문/댓글/대회/알림/문의)에서 이 메서드를 호출해서 알림을 생성하게 됨
-    @Transactional
+    // 주의: 의도적으로 @Transactional을 안 붙임. AlertSettings 저장/Notification 저장은 각자
+    // SimpleJpaRepository가 자체 트랜잭션으로 처리하고, 둘 사이에 원자성이 필요 없어서 굳이 감쌀 이유가 없음.
+    // 특히 뒤이어 호출하는 notificationSseSender.send()가 재시도(최대 수 초)를 포함하므로,
+    // 여기를 트랜잭션으로 감싸면 그동안 DB 커넥션을 붙잡고 있게 되어 커넥션 풀 고갈 위험이 생김.
     public void createNotification(
             Long userId, NotificationType type, String title, String message, String targetUrl) {
         AlertSettings settings = alertSettingsService.getOrCreateSettings(userId);
@@ -48,7 +51,7 @@ public class NotificationService {
 
         Notification savedNotification = notificationRepository.save(notification);
 
-        sseEmitterService.send(userId, NotificationResponse.from(savedNotification));
+        notificationSseSender.send(userId, NotificationResponse.from(savedNotification));
     }
 
     public Page<NotificationResponse> getNotifications(Long userId, Pageable pageable) {
