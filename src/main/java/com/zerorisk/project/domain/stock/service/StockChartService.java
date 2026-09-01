@@ -18,7 +18,9 @@ public class StockChartService {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HHmmss");
-    private static final int DAILY_LOOKBACK_DAYS = 100;
+    private static final int DAY_LOOKBACK_DAYS = 100;
+    private static final int WEEK_LOOKBACK_DAYS = 700;
+    private static final int MONTH_LOOKBACK_DAYS = 3000;
 
     private final KisChartClient kisChartClient;
 
@@ -30,18 +32,21 @@ public class StockChartService {
     }
 
     private List<ChartCandleResponse> getDailyChart(String code, ChartInterval interval) {
-        String periodCode = switch (interval) {
-            case DAY -> "D";
-            case WEEK -> "W";
-            case MONTH -> "M";
+        record ChartRange(String periodCode, int lookbackDays) {
+        }
+
+        ChartRange range = switch (interval) {
+            case DAY -> new ChartRange("D", DAY_LOOKBACK_DAYS);
+            case WEEK -> new ChartRange("W", WEEK_LOOKBACK_DAYS);
+            case MONTH -> new ChartRange("M", MONTH_LOOKBACK_DAYS);
             case MINUTE -> throw new IllegalArgumentException("분봉은 별도 API로 조회합니다.");
         };
 
         LocalDate today = LocalDate.now();
-        String startDate = today.minusDays(DAILY_LOOKBACK_DAYS).format(DATE_FORMAT);
+        String startDate = today.minusDays(range.lookbackDays()).format(DATE_FORMAT);
         String endDate = today.format(DATE_FORMAT);
 
-        return kisChartClient.fetchDailyChart(code, periodCode, startDate, endDate).stream()
+        return kisChartClient.fetchDailyChart(code, range.periodCode(), startDate, endDate).stream()
                 .map(this::toResponse)
                 .toList();
     }
