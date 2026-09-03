@@ -2,6 +2,7 @@ package com.zerorisk.project.domain.competition.controller;
 
 import com.zerorisk.project.domain.competition.dto.FailedRecalculationResponse;
 import com.zerorisk.project.domain.competition.service.FailedRecalculationService;
+import com.zerorisk.project.global.security.CurrentUserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,8 +31,8 @@ public class AdminFailedRecalculationController {
     }
 
     @PostMapping("/{id}/retry")
-    public ResponseEntity<Void> retry(@PathVariable Long id) {
-        failedRecalculationService.retryResolve(id);
+    public ResponseEntity<Void> retry(@PathVariable Long id, @CurrentUserId Long adminId) {
+        failedRecalculationService.retryResolve(id, adminId);
         return ResponseEntity.noContent().build();
     }
 }
