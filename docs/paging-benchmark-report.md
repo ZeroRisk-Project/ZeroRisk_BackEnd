@@ -13,6 +13,7 @@
 
 - 100만 건 기준, 10만 건 대비 소요시간 증가배율: **LIMIT-OFFSET 24.34배 vs 키셋 10.04배**
 - 키셋은 데이터 10배 증가에 시간도 거의 정확히 10배 — 이론적인 선형(O(n))과 거의 일치
+- **인덱스 실험**: 필터 조건이 있는 조회에서 복합 인덱스로 실행계획을 `filter`(비효율적 사후 검증)에서 `access`(인덱스 탐색 자체에서 조건 반영)로 전환, Cost **995 → 126 (약 7.9배 개선)**
 - GC 로그 실험 도중 벤치마크 코드 자체의 버그 1건 발견·수정 (`KeysetItemReader` 영속성 컨텍스트 누수)
 - 두 방식 모두 100만 건까지 Full GC 발생 0건
 
@@ -66,13 +67,63 @@ java -Xlog:gc*:file=gc-keyset.log:time,uptime:filecount=5,filesize=10M \
 
 ---
 
-## 2. 인덱스 실험 — 준비 완료 · 미실행
+## 2. 인덱스 실험
 
-필터 조건이 있는 조회(특정 활동 유형만 조회)에서 인덱스가 실질적으로 얼마나 도움이 되는지 확인하려던 실험. GC 로그 실험을 우선하기로 하면서 **데이터 준비까지만** 진행했다.
+필터 조건이 있는 조회(특정 활동 유형만 조회)에서 인덱스가 실질적으로 얼마나 도움이 되는지 확인했다. 데이터 시딩·격리는 애플리케이션 벤치마크 러너로 준비했고, `CREATE INDEX`/`EXPLAIN PLAN` 자체는 종권님이 DB에 직접 접속해 실행했다.
 
-- **완료된 것**: `BENCHMARK_LOGS` 100만 건을 `ACTION_TYPE` 10종(LOGIN / SIGNUP / ORDER_BUY / ORDER_SELL / FOLLOW / UNFOLLOW / POST_CREATE / COMMENT_CREATE / CHARGE / WITHDRAW)에 정확히 100,000건씩 균등 분배해 재시딩 완료 (`--benchmark.mode=seed`로 확인).
-- **남은 것**: 인덱스 없는 상태에서 `ACTION_TYPE = 'LOGIN' AND ID > 500000` 조건의 `EXPLAIN PLAN` 확인 → `CREATE INDEX` 생성 → 같은 쿼리 재실행 후 `TABLE ACCESS FULL`이 `INDEX RANGE SCAN`으로 바뀌는지, Cost가 얼마나 줄어드는지 캡처.
-- **참고**: 이번 리포트를 마무리하며 `BENCHMARK_LOGS`를 완전히 삭제(`--benchmark.mode=drop`)했으므로, 이 실험을 이어가려면 `--benchmark.mode=seed --benchmark.volume=1000000`로 데이터를 다시 준비해야 한다.
+**데이터 준비**: `BENCHMARK_LOGS` 100만 건을 `ACTION_TYPE` 10종(LOGIN / SIGNUP / ORDER_BUY / ORDER_SELL / FOLLOW / UNFOLLOW / POST_CREATE / COMMENT_CREATE / CHARGE / WITHDRAW)에 정확히 100,000건씩 균등 분배해 재시딩 (`--benchmark.mode=seed`).
+
+**측정 쿼리**:
+```sql
+SELECT * FROM BENCHMARK_LOGS
+WHERE ACTION_TYPE = 'LOGIN' AND ID > 500000
+ORDER BY ID FETCH FIRST 1000 ROWS ONLY;
+```
+
+### 인덱스 생성 전
+
+```
+Plan hash value: 385616063
+--------------------------------------------------------------------------------------------------
+| Id  | Operation                        | Name           | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                 |                |  1000 | 1192K|   995   (0)| 00:00:01 |
+|*  1 |  VIEW                            |                |  1000 | 1192K|   995   (0)| 00:00:01 |
+|*  2 |   WINDOW NOSORT STOPKEY          |                | 99986 |  113M|   995   (0)| 00:00:01 |
+|*  3 |    TABLE ACCESS BY INDEX ROWID   | BENCHMARK_LOGS | 99986 |  113M|   995   (0)| 00:00:01 |
+|*  4 |     INDEX RANGE SCAN             | SYS_C008651    |  9993 |      |    23   (0)| 00:00:01 |
+--------------------------------------------------------------------------------------------------
+
+Predicate Information:
+   3 - filter("ACTION_TYPE"='LOGIN')      <- ID 인덱스로 걸어가며 매 로우를 읽어와 사후 필터링
+   4 - access("ID">500000)
+```
+
+PK 인덱스(`ID`)를 타고는 있었지만, `ACTION_TYPE` 조건은 "일단 읽어와서 확인"하는 **filter**로 처리됨. `LOGIN`은 전체의 10%뿐이라 조건에 안 맞는 로우까지 실제로 테이블에서 읽어와 버리는 비용(랜덤 I/O)이 발생.
+
+### 인덱스 생성 후
+
+```sql
+CREATE INDEX IDX_BENCHMARK_ACTION_TYPE_ID ON BENCHMARK_LOGS(ACTION_TYPE, ID);
+```
+
+```
+Plan hash value: 1127465192
+--------------------------------------------------------------------------------------------------------------
+| Id  | Operation                        | Name                          | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                 |                               |  1000 | 1192K|   126   (0)| 00:00:01 |
+|*  1 |  VIEW                            |                               |  1000 | 1192K|   126   (0)| 00:00:01 |
+|*  2 |   WINDOW NOSORT STOPKEY          |                               | 99986 |  113M|   126   (0)| 00:00:01 |
+|   3 |    TABLE ACCESS BY INDEX ROWID   | BENCHMARK_LOGS                | 99986 |  113M|   126   (0)| 00:00:01 |
+|*  4 |     INDEX RANGE SCAN             | IDX_BENCHMARK_ACTION_TYPE_ID  |       |      |     6   (0)| 00:00:01 |
+--------------------------------------------------------------------------------------------------------------
+
+Predicate Information:
+   4 - access("ACTION_TYPE"='LOGIN' AND "ID">500000)   <- 두 조건 모두 인덱스 탐색 단계에서 처리
+```
+
+**결과**: `ACTION_TYPE` 조건이 `filter`에서 `access`로 이동 — "읽어온 뒤 확인"이 아니라 "인덱스 탐색 자체에서 조건에 맞는 것만 찾기"로 바뀜. 불필요한 로우를 테이블에서 읽어와 버리는 과정이 사라져 **Cost 995 → 126 (약 7.9배 개선)**.
 
 ---
 
@@ -129,6 +180,7 @@ if (currentIndex >= currentChunk.size()) {
 ## 4. 결론 & 권장사항
 
 - **관리자 활동 로그 조회를 키셋 페이징으로 전환** — 데이터가 계속 쌓이는 구조상, 100만 건 시점에 이미 2.8배 차이가 나고 격차는 계속 벌어진다. 뒷페이지 조회가 잦은 화면일수록 효과가 크다.
-- **2절 인덱스 실험 이어서 진행** — `--benchmark.mode=seed`로 데이터부터 다시 준비하면 `EXPLAIN PLAN` 전/후 비교만 남는다.
+- **조건 검색이 붙는 조회는 복합 인덱스 필수 검토** — `filter`가 아닌 `access`로 실행계획이 바뀌는지 `EXPLAIN PLAN`으로 항상 확인할 것. `ACTION_TYPE` 단일 조건에서도 Cost가 7.9배 줄어드는 걸 확인했다.
 - **실제 키셋 Reader를 만들 때는 이번에 발견한 버그를 그대로 재현하지 말 것** — `EntityManager`를 청크 단위로 재사용한다면 반드시 주기적으로 `clear()`할 것.
-- **`BENCHMARK_LOGS`와 Spring Batch 메타데이터 테이블은 이 리포트 작성 시점에 전부 삭제 완료** — 재실행 시 `smoke` 모드로 스키마부터 다시 확인할 것.
+- **성능 저하의 원인을 추측하지 말고 실측할 것** — "JVM 메모리 문제일 것"이라는 가설은 GC 로그 실측 전까지는 그럴듯했지만 실제로는 틀렸다. DB 실행계획과 JVM GC 로그를 함께 봐야 병목의 정확한 위치를 알 수 있다.
+- **`BENCHMARK_LOGS`와 Spring Batch 메타데이터 테이블은 이 리포트 작성 시점에 전부 삭제 완료** (`--benchmark.mode=drop`) — 재실행 시 `smoke` 모드로 스키마부터 다시 확인할 것.
