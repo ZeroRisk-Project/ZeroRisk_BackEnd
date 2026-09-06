@@ -328,9 +328,20 @@ public class CompetitionService {
                 // 상금 지급 직전, 참가자 전원의 자산을 최신 시세 기준으로 딱 한 번 재평가한다.
                 List<CompetitionParticipant> participants = competitionParticipantRepository
                                 .findByCompetitionId(competitionId);
+
+                // 참가자마다 recalculate()를 부르면 같은 종목을 참가자 수만큼 중복으로 KIS 조회하게 되므로,
+                // 필요한 종목 시세를 먼저 한 번에 캐시해둔다(PortfolioSnapshotService와 동일한 패턴).
+                Map<Long, BigDecimal> priceByStockId = competitionAssetService.prefetchPrices(participants);
+
                 for (CompetitionParticipant participant : participants) {
                         long startedAt = System.currentTimeMillis();
-                        competitionAssetService.recalculate(participant); // 재시도(@Retryable) 끝까지 실패해도 @Recover가 흡수하므로 여기서 예외가 안 올라옴
+                        if (competitionAssetService.hasAllPricesCached(participant, priceByStockId)) {
+                                competitionAssetService.recalculateFromCache(participant, priceByStockId);
+                        } else {
+                                // 일괄 조회에 실패한 종목을 보유한 참가자만 기존 경로로 - 재시도(@Retryable) 끝까지
+                                // 실패해도 @Recover가 흡수하므로 여기서 예외가 안 올라옴
+                                competitionAssetService.recalculate(participant);
+                        }
                         recalculationMetrics.recordCompletionTime(System.currentTimeMillis() - startedAt);
                 }
 
