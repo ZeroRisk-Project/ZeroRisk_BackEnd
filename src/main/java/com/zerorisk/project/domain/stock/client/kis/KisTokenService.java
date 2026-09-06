@@ -3,6 +3,8 @@ package com.zerorisk.project.domain.stock.client.kis;
 import com.zerorisk.project.domain.stock.client.kis.dto.KisTokenResponse;
 import java.time.Instant;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -14,15 +16,41 @@ public class KisTokenService {
 
     private final WebClient kisWebClient;
     private final KisProperties kisProperties;
+    private final KisHttpProperties kisHttpProperties;
+
+    private final ReentrantLock issueLock = new ReentrantLock();
 
     private volatile String cachedToken;
     private volatile Instant expiresAt = Instant.MIN;
 
-    public synchronized String getAccessToken() {
-        if (cachedToken != null && Instant.now().isBefore(expiresAt)) {
-            return cachedToken;
+    public String getAccessToken() {
+        String cached = cachedTokenIfValid();
+        if (cached != null) {
+            return cached;
         }
-        return issueToken();
+        boolean acquired;
+        try {
+            acquired = issueLock.tryLock(kisHttpProperties.tokenLockTimeout().toMillis(), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("KIS 액세스 토큰 발급 대기 중 인터럽트되었습니다.", e);
+        }
+
+        if (!acquired) {
+            throw new IllegalStateException("KIS 액세스 토큰 발급 대기 시간을 초과했습니다.");
+        }
+
+        try {
+            String issued = cachedTokenIfValid();
+            return issued != null ? issued : issueToken();
+        } finally {
+            issueLock.unlock();
+        }
+    }
+
+    private String cachedTokenIfValid() {
+        String token = cachedToken;
+        return token != null && Instant.now().isBefore(expiresAt) ? token : null;
     }
 
     private String issueToken() {
