@@ -19,7 +19,9 @@ public class AccountService {
     private final AccountRepository accountRepository;
 
     public List<AccountResponse> getMyAccounts(Long userId) {
+        // 대회 종료로 비활성화된(COMPETITION) 계좌는 목록에서 숨긴다.
         return accountRepository.findByUserId(userId).stream()
+                .filter(Account::isActive)
                 .map(AccountResponse::from)
                 .toList();
     }
