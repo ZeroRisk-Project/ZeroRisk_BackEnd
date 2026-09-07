@@ -382,6 +382,12 @@ public class CompetitionService {
                                         prizeAmount);
                 }
 
+                // 대회가 끝나면 대회 전용 계좌는 더 이상 쓰이지 않으므로 비활성화해 숨긴다(마이페이지/헤더 계좌 목록에서 제외).
+                for (CompetitionParticipant participant : participants) {
+                        accountRepository.findById(participant.getAccountId())
+                                        .ifPresent(Account::deactivate);
+                }
+
                 competition.endCompetition();
                 competitionParticipantCache.evictAll(competitionId);
         }
