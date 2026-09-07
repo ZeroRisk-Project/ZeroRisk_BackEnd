@@ -3,6 +3,7 @@ package com.zerorisk.project.domain.comment.controller;
 import com.zerorisk.project.domain.comment.dto.CommentCreateRequest;
 import com.zerorisk.project.domain.comment.dto.CommentResponse;
 import com.zerorisk.project.domain.comment.dto.CommentUpdateRequest;
+import com.zerorisk.project.domain.comment.service.CommentLikeService;
 import com.zerorisk.project.domain.comment.service.CommentService;
 import com.zerorisk.project.global.security.CurrentUserId;
 import jakarta.validation.Valid;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class CommentController {
 
     private final CommentService commentService;
+    private final CommentLikeService commentLikeService;
 
     @PostMapping("/api/v1/posts/{postId}/comments")
     public ResponseEntity<CommentResponse> createComment(
@@ -52,6 +54,13 @@ public class CommentController {
     @DeleteMapping("/api/v1/comments/{commentId}")
     public ResponseEntity<Void> deleteComment(@CurrentUserId Long userId, @PathVariable Long commentId) {
         commentService.deleteComment(userId, commentId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/api/v1/comments/{commentId}/likes")
+    public ResponseEntity<Void> likeComment(@CurrentUserId Long userId, @PathVariable Long commentId) {
+        commentLikeService.toggleLike(userId, commentId);
 
         return ResponseEntity.noContent().build();
     }

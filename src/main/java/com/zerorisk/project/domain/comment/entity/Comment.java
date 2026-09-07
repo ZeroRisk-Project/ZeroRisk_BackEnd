@@ -50,6 +50,9 @@ public class Comment {
     @Column(name = "IS_DELETED", nullable = false)
     private Boolean isDeleted;
 
+    @Column(name = "LIKE_COUNT", nullable = false)
+    private Integer likeCount;
+
     @Column(name = "CREATED_AT", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -60,11 +63,20 @@ public class Comment {
         this.parent = parent;
         this.content = content;
         this.isDeleted = false;
+        this.likeCount = 0;
         this.createdAt = LocalDateTime.now();
     }
 
     public void update(String content) {
         this.content = content;
+    }
+
+    public void increaseLikeCount() {
+        this.likeCount += 1;
+    }
+
+    public void decreaseLikeCount() {
+        this.likeCount -= 1;
     }
 
     public void softDelete() {
