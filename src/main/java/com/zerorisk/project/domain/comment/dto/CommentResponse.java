@@ -13,6 +13,7 @@ public record CommentResponse(
         String content,
         boolean isDeleted,
         boolean isMine,
+        int likeCount,
         LocalDateTime createdAt,
         List<CommentResponse> replies) {
 
@@ -28,6 +29,7 @@ public record CommentResponse(
                 comment.getIsDeleted() ? "삭제된 댓글입니다." : comment.getContent(),
                 comment.getIsDeleted(),
                 isMine,
+                comment.getLikeCount(),
                 comment.getCreatedAt(),
                 new ArrayList<>());
     }
