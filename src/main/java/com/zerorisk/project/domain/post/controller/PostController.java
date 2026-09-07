@@ -41,6 +41,13 @@ public class PostController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<Page<PostResponse>> getMyPosts(
+            @CurrentUserId Long userId,
+            Pageable pageable) {
+        return ResponseEntity.ok(postService.getMyPosts(userId, pageable));
+    }
+
     @GetMapping("/{postId}")
     public ResponseEntity<PostResponse> getPost(
             @CurrentUserId Long viewerId,

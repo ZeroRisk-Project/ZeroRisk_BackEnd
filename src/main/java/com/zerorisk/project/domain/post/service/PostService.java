@@ -85,6 +85,16 @@ public class PostService {
         });
     }
 
+    // 마이페이지 "내 게시글" 목록 조회
+    public Page<PostResponse> getMyPosts(Long userId, Pageable pageable) {
+        Page<Post> posts = postRepository.findByUser_IdAndIsDeletedFalseOrderByCreatedAtDesc(userId, pageable);
+
+        return posts.map(post -> {
+            int commentCount = (int) commentRepository.countByPostIdAndIsDeletedFalse(post.getId());
+            return PostResponse.from(post, commentCount, userId);
+        });
+    }
+
     @Transactional
     public PostResponse updatePost(Long userId, Long postId, PostUpdateRequest request) {
         Post post = postRepository.findByIdAndIsDeletedFalse(postId)

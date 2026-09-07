@@ -3,6 +3,7 @@ package com.zerorisk.project.domain.comment.service;
 import com.zerorisk.project.domain.comment.dto.CommentCreateRequest;
 import com.zerorisk.project.domain.comment.dto.CommentResponse;
 import com.zerorisk.project.domain.comment.dto.CommentUpdateRequest;
+import com.zerorisk.project.domain.comment.dto.MyCommentResponse;
 import com.zerorisk.project.domain.comment.entity.Comment;
 import com.zerorisk.project.domain.comment.repository.CommentRepository;
 import com.zerorisk.project.domain.post.entity.Post;
@@ -19,6 +20,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -81,6 +84,12 @@ public class CommentService {
         }
 
         return roots;
+    }
+
+    // 마이페이지 "내 댓글" 목록 조회
+    public Page<MyCommentResponse> getMyComments(Long userId, Pageable pageable) {
+        return commentRepository.findByUser_IdAndIsDeletedFalseOrderByCreatedAtDesc(userId, pageable)
+                .map(MyCommentResponse::from);
     }
 
     @Transactional

@@ -19,4 +19,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Page<Post> findAllBy(Pageable pageable);
 
     long countByUser_IdAndIsDeletedFalse(Long userId);
+
+    // 마이페이지 "내 게시글" 목록 조회
+    Page<Post> findByUser_IdAndIsDeletedFalseOrderByCreatedAtDesc(Long userId, Pageable pageable);
 }
