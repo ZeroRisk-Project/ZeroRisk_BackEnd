@@ -3,12 +3,15 @@ package com.zerorisk.project.domain.comment.controller;
 import com.zerorisk.project.domain.comment.dto.CommentCreateRequest;
 import com.zerorisk.project.domain.comment.dto.CommentResponse;
 import com.zerorisk.project.domain.comment.dto.CommentUpdateRequest;
+import com.zerorisk.project.domain.comment.dto.MyCommentResponse;
 import com.zerorisk.project.domain.comment.service.CommentLikeService;
 import com.zerorisk.project.domain.comment.service.CommentService;
 import com.zerorisk.project.global.security.CurrentUserId;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -41,6 +44,13 @@ public class CommentController {
             @CurrentUserId Long viewerId,
             @PathVariable Long postId) {
         return ResponseEntity.ok(commentService.getComments(postId, viewerId));
+    }
+
+    @GetMapping("/api/v1/comments/me")
+    public ResponseEntity<Page<MyCommentResponse>> getMyComments(
+            @CurrentUserId Long userId,
+            Pageable pageable) {
+        return ResponseEntity.ok(commentService.getMyComments(userId, pageable));
     }
 
     @PatchMapping("/api/v1/comments/{commentId}")
