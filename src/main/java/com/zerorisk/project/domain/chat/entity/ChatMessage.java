@@ -46,8 +46,11 @@ public class ChatMessage {
     private User user;
 
     @Lob
-    @Column(name = "MESSAGE", nullable = false)
+    @Column(name = "MESSAGE")
     private String message;
+
+    @Column(name = "IMAGE_URL", length = 500)
+    private String imageUrl;
 
     @Column(name = "IS_DELETED", nullable = false)
     private Boolean isDeleted;
@@ -59,11 +62,12 @@ public class ChatMessage {
     private LocalDateTime createdAt;
 
     @Builder
-    private ChatMessage(ChatChannelType channelType, String channelId, User user, String message) {
+    private ChatMessage(ChatChannelType channelType, String channelId, User user, String message, String imageUrl) {
         this.channelType = channelType;
         this.channelId = channelId;
         this.user = user;
         this.message = message;
+        this.imageUrl = imageUrl;
         this.isDeleted = false;
         this.isReported = false;
         this.createdAt = LocalDateTime.now();

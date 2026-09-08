@@ -166,6 +166,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("CHAT_002", e.getMessage()));
     }
 
+    @ExceptionHandler(ChatMessageEmptyException.class)
+    public ResponseEntity<ErrorResponse> handleChatMessageEmpty(ChatMessageEmptyException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse("CHAT_004", e.getMessage()));
+    }
+
     @ExceptionHandler(ChatRateLimitExceededException.class)
     public ResponseEntity<ErrorResponse> handleChatRateLimitExceeded(ChatRateLimitExceededException e) {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(new ErrorResponse("CHAT_003", e.getMessage()));
