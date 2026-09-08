@@ -53,7 +53,9 @@ public class KisRankingClientImpl implements KisRankingClient {
                 .block();
 
         if (response == null || response.output() == null || !"0".equals(response.returnCode())) {
-            throw new IllegalStateException("KIS 거래량순위 조회에 실패했습니다.");
+            throw new IllegalStateException("KIS 거래량순위 조회에 실패했습니다. rt_cd=%s, msg1=%s".formatted(
+              response == null ? "none" : response.returnCode(),
+              response == null ? "none" : response.message()));
         }
 
         return response.output();
