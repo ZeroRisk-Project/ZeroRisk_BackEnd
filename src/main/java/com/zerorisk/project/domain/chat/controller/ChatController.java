@@ -25,6 +25,7 @@ public class ChatController {
             @DestinationVariable String channelId,
             @Valid ChatMessageRequest request,
             UserPrincipal principal) {
-        return chatService.saveMessage(principal.getUserId(), channelType, channelId, request.message());
+        return chatService.saveMessage(
+                principal.getUserId(), channelType, channelId, request.message(), request.imageUrl());
     }
 }

@@ -8,6 +8,7 @@ import com.zerorisk.project.domain.stock.repository.StockRepository;
 import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.repository.UserRepository;
 import com.zerorisk.project.global.exception.ChatAccessDeniedException;
+import com.zerorisk.project.global.exception.ChatMessageEmptyException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
 import com.zerorisk.project.global.websocket.dto.ChatChannelType;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,14 @@ public class ChatService {
 
     @Transactional
     public ChatMessageResponse saveMessage(
-            Long userId, ChatChannelType channelType, String channelId, String content) {
+            Long userId, ChatChannelType channelType, String channelId, String content, String imageUrl) {
+        boolean hasText = content != null && !content.isBlank();
+        boolean hasImage = imageUrl != null && !imageUrl.isBlank();
+
+        if (!hasText && !hasImage) {
+            throw new ChatMessageEmptyException();
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
 
@@ -35,7 +43,8 @@ public class ChatService {
                 .channelType(channelType)
                 .channelId(channelId)
                 .user(user)
-                .message(content)
+                .message(hasText ? content : null)
+                .imageUrl(hasImage ? imageUrl : null)
                 .build();
 
         ChatMessage savedMessage = chatMessageRepository.save(chatMessage);

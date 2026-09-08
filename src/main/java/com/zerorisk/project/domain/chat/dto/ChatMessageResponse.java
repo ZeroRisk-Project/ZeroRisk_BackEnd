@@ -11,6 +11,7 @@ public record ChatMessageResponse(
         Long authorId,
         String authorNickname,
         String message,
+        String imageUrl,
         LocalDateTime createdAt) {
 
     public static ChatMessageResponse from(ChatMessage chatMessage) {
@@ -21,6 +22,7 @@ public record ChatMessageResponse(
                 chatMessage.getUser().getId(),
                 chatMessage.getUser().getNickname(),
                 chatMessage.getMessage(),
+                chatMessage.getImageUrl(),
                 chatMessage.getCreatedAt());
     }
 }
