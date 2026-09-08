@@ -1,6 +1,8 @@
 package com.zerorisk.project.domain.stock.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 import com.zerorisk.project.domain.stock.client.kis.KisRankingClient;
@@ -26,7 +28,7 @@ class StockRankingServiceTest {
     @Test
     void RISE_조회_시_등락률_내림차순_정렬() {
         stockRankingService = new StockRankingService(kisRankingClient);
-        given(kisRankingClient.fetchVolumeRanking()).willReturn(List.of(
+        given(kisRankingClient.fetchVolumeRanking(anyString())).willReturn(List.of(
                 new KisRankingResponse.Output("000001", "A", "10000", "100", "2", "1.00", "500"),
                 new KisRankingResponse.Output("000002", "B", "20000", "600", "2", "3.00", "300"),
                 new KisRankingResponse.Output("000003", "C", "30000", "200", "5", "-2.00", "900")));
@@ -41,7 +43,7 @@ class StockRankingServiceTest {
     @Test
     void FALL_조회_시_등락률_오름차순_정렬() {
         stockRankingService = new StockRankingService(kisRankingClient);
-        given(kisRankingClient.fetchVolumeRanking()).willReturn(List.of(
+        given(kisRankingClient.fetchVolumeRanking(anyString())).willReturn(List.of(
                 new KisRankingResponse.Output("000001", "A", "10000", "100", "2", "1.00", "500"),
                 new KisRankingResponse.Output("000003", "C", "30000", "200", "5", "-2.00", "900")));
 
@@ -56,7 +58,7 @@ class StockRankingServiceTest {
     @Test
     void count로_상위_N건_제한() {
         stockRankingService = new StockRankingService(kisRankingClient);
-        given(kisRankingClient.fetchVolumeRanking()).willReturn(List.of(
+        given(kisRankingClient.fetchVolumeRanking(anyString())).willReturn(List.of(
                 new KisRankingResponse.Output("000001", "A", "10000", "100", "2", "1.00", "900"),
                 new KisRankingResponse.Output("000002", "B", "20000", "600", "2", "3.00", "500"),
                 new KisRankingResponse.Output("000003", "C", "30000", "200", "5", "-2.00", "300")));
@@ -66,5 +68,36 @@ class StockRankingServiceTest {
         assertThat(result).hasSize(2);
         assertThat(result).extracting(StockRankingResponse::code)
                 .containsExactly("000001", "000002");
+    }
+
+    @DisplayName("전체/코스닥 두 시장 조회 결과를 합치고 중복 종목은 한 번만 남긴다")
+    @Test
+    void 두_시장_조회_결과를_합치고_중복은_제거한다() {
+        stockRankingService = new StockRankingService(kisRankingClient);
+        given(kisRankingClient.fetchVolumeRanking(eq("0000"))).willReturn(List.of(
+                new KisRankingResponse.Output("000001", "A", "10000", "100", "2", "1.00", "900")));
+        given(kisRankingClient.fetchVolumeRanking(eq("1001"))).willReturn(List.of(
+                new KisRankingResponse.Output("000001", "A", "10000", "100", "2", "1.00", "900"),
+                new KisRankingResponse.Output("000099", "코스닥전용", "5000", "50", "2", "1.00", "700")));
+
+        List<StockRankingResponse> result = stockRankingService.getRankings(RankingType.VOLUME, 10);
+
+        assertThat(result).extracting(StockRankingResponse::code)
+                .containsExactlyInAnyOrder("000001", "000099");
+    }
+
+    @DisplayName("한 시장 조회가 실패해도 다른 시장 결과는 반환한다")
+    @Test
+    void 한_시장_조회_실패해도_나머지_결과는_반환한다() {
+        stockRankingService = new StockRankingService(kisRankingClient);
+        given(kisRankingClient.fetchVolumeRanking(eq("0000")))
+                .willThrow(new IllegalStateException("KIS 오류"));
+        given(kisRankingClient.fetchVolumeRanking(eq("1001"))).willReturn(List.of(
+                new KisRankingResponse.Output("000099", "코스닥전용", "5000", "50", "2", "1.00", "700")));
+
+        List<StockRankingResponse> result = stockRankingService.getRankings(RankingType.VOLUME, 10);
+
+        assertThat(result).extracting(StockRankingResponse::code)
+                .containsExactly("000099");
     }
 }

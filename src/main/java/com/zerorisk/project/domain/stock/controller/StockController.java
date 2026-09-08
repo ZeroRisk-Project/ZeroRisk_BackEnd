@@ -14,6 +14,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,14 +35,14 @@ public class StockController {
     @GetMapping("/search")
     public ResponseEntity<Page<StockSummaryResponse>> search(
             @RequestParam String keyword,
-            Pageable pageable) {
+            @PageableDefault(size = 100) Pageable pageable) {
         return ResponseEntity.ok(stockSearchService.search(keyword, pageable));
     }
 
     @GetMapping("/rankings")
     public ResponseEntity<List<StockRankingResponse>> getRankings(
             @RequestParam RankingType type,
-            @RequestParam(defaultValue = "20") int count) {
+            @RequestParam(defaultValue = "100") int count) {
         return ResponseEntity.ok(stockRankingService.getRankings(type, count));
     }
 
