@@ -2,23 +2,33 @@ package com.zerorisk.project.domain.stock.client.kis;
 
 import com.zerorisk.project.domain.stock.client.kis.dto.KisRankingResponse;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Component
-@RequiredArgsConstructor
 public class KisRankingClientImpl implements KisRankingClient {
 
     private static final String TR_ID = "FHPST01710000";
-
-    private final WebClient kisWebClient;
-    private final KisTokenService kisTokenService;
-    private final KisProperties kisProperties;
+    
+    private final WebClient kisRankingWebClient;
+    private final KisAccessTokenProvider kisRankingTokenProvider;
+    private final String appKey;
+    private final String appSecret;
+    
+    public KisRankingClientImpl(
+      WebClient kisRankingWebClient,
+      KisAccessTokenProvider kisRankingTokenProvider,
+      KisProperties kisProperties,
+      KisRankingProperties kisRankingProperties) {
+        this.kisRankingWebClient = kisRankingWebClient;
+        this.kisRankingTokenProvider = kisRankingTokenProvider;
+        this.appKey = kisRankingProperties.resolveAppKey(kisProperties);
+        this.appSecret = kisRankingProperties.resolveAppSecret(kisProperties);
+    }
 
     @Override
     public List<KisRankingResponse.Output> fetchVolumeRanking() {
-        KisRankingResponse response = kisWebClient.get()
+        KisRankingResponse response = kisRankingWebClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/uapi/domestic-stock/v1/quotations/volume-rank")
                         .queryParam("FID_COND_MRKT_DIV_CODE", "J")
@@ -33,9 +43,9 @@ public class KisRankingClientImpl implements KisRankingClient {
                         .queryParam("FID_VOL_CNT", "")
                         .queryParam("FID_INPUT_DATE_1", "")
                         .build())
-                .header("authorization", "Bearer " + kisTokenService.getAccessToken())
-                .header("appkey", kisProperties.appKey())
-                .header("appsecret", kisProperties.appSecret())
+                .header("authorization", "Bearer " + kisRankingTokenProvider.getAccessToken())
+                .header("appkey", appKey)
+                .header("appsecret", appSecret)
                 .header("tr_id", TR_ID)
                 .header("custtype", "P")
                 .retrieve()
