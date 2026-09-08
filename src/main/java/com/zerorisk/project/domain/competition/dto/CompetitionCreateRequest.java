@@ -13,9 +13,11 @@ public record CompetitionCreateRequest(
 
                 String description,
 
-                @NotNull @Future LocalDateTime recruitStartAt,
+                // 모집 시작/마감일은 오늘 날짜로도 만들 수 있어야 하므로 @Future(현재 시각 이후) 대신
+                // CompetitionService에서 날짜 단위(오늘 포함)로 검증한다.
+                @NotNull LocalDateTime recruitStartAt,
 
-                @NotNull @Future LocalDateTime recruitEndAt,
+                @NotNull LocalDateTime recruitEndAt,
 
                 @NotNull @Future LocalDateTime startAt,
 

@@ -29,8 +29,12 @@ import com.zerorisk.project.domain.competition.repository.CompetitionRankingProj
 import com.zerorisk.project.domain.competition.repository.CompetitionRankingRepository;
 import com.zerorisk.project.domain.competition.repository.CompetitionRepository;
 import com.zerorisk.project.domain.competition.repository.PrizeHistoryRepository;
+import com.zerorisk.project.domain.user.entity.User;
+import com.zerorisk.project.domain.user.entity.UserRole;
+import com.zerorisk.project.domain.user.repository.UserRepository;
 import com.zerorisk.project.global.audit.AdminActionLogger;
 import com.zerorisk.project.global.audit.UserActivityLogger;
+import com.zerorisk.project.global.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -39,6 +43,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +66,7 @@ public class CompetitionService {
         private final UserActivityLogger userActivityLogger;
         private final CompetitionParticipantCache competitionParticipantCache;
         private final RecalculationMetrics recalculationMetrics;
+        private final UserRepository userRepository;
 
         public Page<CompetitionSummaryResponse> getCompetitions(Pageable pageable) {
                 Page<Competition> competitions = competitionRepository.findByIsPublicTrue(pageable);
@@ -117,9 +123,18 @@ public class CompetitionService {
                         throw new CompetitionException(CompetitionErrorCode.MAX_PARTICIPATION_EXCEEDED);
                 }
 
-                accountRepository.findByUserIdAndAccountType(userId, AccountType.BASIC)
-                                .orElseThrow(() -> new CompetitionException(
-                                                CompetitionErrorCode.BASIC_ACCOUNT_REQUIRED));
+                if (accountRepository.findByUserIdAndAccountType(userId, AccountType.BASIC).isEmpty()) {
+                        // 일반 회원은 오픈뱅킹 인증(또는 연습용 크레딧 수령)을 거쳐야 BASIC 계좌가 생기지만,
+                        // 관리자는 그 온보딩 과정을 거치지 않으므로 대회 참가 시점에 빈 BASIC 계좌를 만들어 준다.
+                        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+                        if (user.getUserRole() != UserRole.ADMIN) {
+                                throw new CompetitionException(CompetitionErrorCode.BASIC_ACCOUNT_REQUIRED);
+                        }
+                        accountRepository.save(Account.builder()
+                                        .userId(userId)
+                                        .accountType(AccountType.BASIC)
+                                        .build());
+                }
 
                 // 대회 시작 전까지는 비활성 계좌 - 시드머니도 대회 시작 시점(startCompetition)에 지급
                 Account competitionAccount = Account.builder()
@@ -243,6 +258,13 @@ public class CompetitionService {
         public Long createCompetition(CompetitionCreateRequest request, Long adminUserId) {
                 if (!request.recruitStartAt().isBefore(request.recruitEndAt())
                                 || !request.recruitEndAt().isBefore(request.startAt())) {
+                        throw new CompetitionException(CompetitionErrorCode.INVALID_RECRUIT_PERIOD);
+                }
+
+                // 모집일은 오늘 날짜로도 만들 수 있어야 하므로, 시각까지는 안 보고 날짜 단위로만 과거 여부를 검증한다.
+                LocalDate today = LocalDate.now();
+                if (request.recruitStartAt().toLocalDate().isBefore(today)
+                                || request.recruitEndAt().toLocalDate().isBefore(today)) {
                         throw new CompetitionException(CompetitionErrorCode.INVALID_RECRUIT_PERIOD);
                 }
 
