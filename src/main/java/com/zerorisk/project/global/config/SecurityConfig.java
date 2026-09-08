@@ -110,6 +110,9 @@ public class SecurityConfig {
                         // WebSocket 핸드셰이크 엔드포인트 - 실제 인증은 STOMP 레벨(CustomHandshakeInterceptor,
                         // StompChannelInterceptor)에서 별도로 처리하므로 여기서는 통과시켜야 함
                         .requestMatchers("/ws/chat/**").permitAll()
+                        // 이미지 조회는 누구나 가능(게시글 첨부 이미지를 비로그인 사용자도 봐야 함), 업로드는 로그인 필요
+                        .requestMatchers(HttpMethod.GET, "/api/images/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/images").authenticated()
                         // 관리자 API 일괄 규칙 - 각 컨트롤러의 개별 @PreAuthorize("hasRole('ADMIN')")를 여기로 통합
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())

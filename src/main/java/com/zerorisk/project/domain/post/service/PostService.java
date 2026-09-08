@@ -7,6 +7,8 @@ import com.zerorisk.project.domain.post.dto.PostResponse;
 import com.zerorisk.project.domain.post.dto.PostUpdateRequest;
 import com.zerorisk.project.domain.post.entity.BoardType;
 import com.zerorisk.project.domain.post.entity.Post;
+import com.zerorisk.project.domain.post.entity.PostImage;
+import com.zerorisk.project.domain.post.repository.PostImageRepository;
 import com.zerorisk.project.domain.post.repository.PostRepository;
 import com.zerorisk.project.domain.user.entity.User;
 import com.zerorisk.project.domain.user.repository.UserRepository;
@@ -14,6 +16,7 @@ import com.zerorisk.project.global.audit.UserActivityLogger;
 import com.zerorisk.project.global.exception.PostAccessDeniedException;
 import com.zerorisk.project.global.exception.PostNotFoundException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,6 +33,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
+    private final PostImageRepository postImageRepository;
     private final UserActivityLogger userActivityLogger;
 
     @Transactional
@@ -46,10 +50,13 @@ public class PostService {
                 .build();
 
         Post savedPost = postRepository.save(post);
+
+        List<String> imageUrls = saveImages(savedPost, request.imageUrls());
+
         userActivityLogger.log(userId, "POST_CREATE", "[" + request.boardType() + "] " + request.title());
 
         // 방금 만든 글이라 댓글이 있을 수 없으므로 0 고정
-        return PostResponse.from(savedPost, 0, userId);
+        return PostResponse.from(savedPost, 0, userId, imageUrls);
     }
 
     @Transactional
@@ -60,8 +67,9 @@ public class PostService {
         post.increaseViewCount();
 
         int commentCount = (int) commentRepository.countByPostIdAndIsDeletedFalse(postId);
+        List<String> imageUrls = getImageUrls(postId);
 
-        return PostResponse.from(post, commentCount, viewerId);
+        return PostResponse.from(post, commentCount, viewerId, imageUrls);
     }
 
     public Page<PostResponse> getPosts(BoardType boardType, Pageable pageable, Long viewerId) {
@@ -79,9 +87,17 @@ public class PostService {
                         PostCommentCountProjection::getPostId,
                         projection -> projection.getCommentCount().intValue()));
 
+        // 게시글 목록 전체의 이미지를 쿼리 1번으로 조회 (N+1 방지)
+        Map<Long, List<String>> imageUrlsByPostId = postImageRepository.findByPostIdInOrderByDisplayOrderAsc(postIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        image -> image.getPost().getId(),
+                        Collectors.mapping(PostImage::getImageUrl, Collectors.toList())));
+
         return posts.map(post -> {
             int commentCount = commentCountByPostId.getOrDefault(post.getId(), 0);
-            return PostResponse.from(post, commentCount, viewerId);
+            List<String> imageUrls = imageUrlsByPostId.getOrDefault(post.getId(), List.of());
+            return PostResponse.from(post, commentCount, viewerId, imageUrls);
         });
     }
 
@@ -91,7 +107,8 @@ public class PostService {
 
         return posts.map(post -> {
             int commentCount = (int) commentRepository.countByPostIdAndIsDeletedFalse(post.getId());
-            return PostResponse.from(post, commentCount, userId);
+            List<String> imageUrls = getImageUrls(post.getId());
+            return PostResponse.from(post, commentCount, userId, imageUrls);
         });
     }
 
@@ -108,8 +125,9 @@ public class PostService {
         userActivityLogger.log(userId, "POST_UPDATE", "게시글 #" + postId + " 수정");
 
         int commentCount = (int) commentRepository.countByPostIdAndIsDeletedFalse(postId);
+        List<String> imageUrls = getImageUrls(postId);
 
-        return PostResponse.from(post, commentCount, userId);
+        return PostResponse.from(post, commentCount, userId, imageUrls);
     }
 
     @Transactional
@@ -123,5 +141,30 @@ public class PostService {
 
         post.softDelete();
         userActivityLogger.log(userId, "POST_DELETE", "게시글 #" + postId + " 삭제");
+    }
+
+    private List<String> saveImages(Post post, List<String> imageUrls) {
+        if (imageUrls == null || imageUrls.isEmpty()) {
+            return List.of();
+        }
+
+        List<PostImage> images = new ArrayList<>();
+        for (int i = 0; i < imageUrls.size(); i++) {
+            images.add(PostImage.builder()
+                    .post(post)
+                    .imageUrl(imageUrls.get(i))
+                    .displayOrder(i)
+                    .build());
+        }
+
+        postImageRepository.saveAll(images);
+
+        return imageUrls;
+    }
+
+    private List<String> getImageUrls(Long postId) {
+        return postImageRepository.findByPostIdOrderByDisplayOrderAsc(postId).stream()
+                .map(PostImage::getImageUrl)
+                .toList();
     }
 }
