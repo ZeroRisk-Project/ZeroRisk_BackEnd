@@ -18,6 +18,7 @@ import reactor.netty.resources.ConnectionProvider;
 @EnableConfigurationProperties({
         KisStockMasterProperties.class,
         KisProperties.class,
+        KisRankingProperties.class,
         KisRealtimeProperties.class,
         KisHttpProperties.class})
 public class KisClientConfig {
@@ -49,7 +50,34 @@ public class KisClientConfig {
                         kisHttpProperties.responseTimeout())))
                 .build();
     }
-
+    
+    @Bean
+    public WebClient kisRankingWebClient(
+      KisProperties kisProperties,
+      KisRankingProperties kisRankingProperties,
+      KisHttpProperties kisHttpProperties) {
+        return WebClient.builder()
+          .baseUrl(kisRankingProperties.resolveBaseUrl(kisProperties))
+          .clientConnector(new ReactorClientHttpConnector(httpClient(
+            "kis-ranking-api",
+            kisHttpProperties,
+            kisHttpProperties.responseTimeout())))
+          .build();
+    }
+    
+    @Bean
+    public KisAccessTokenProvider kisRankingTokenProvider(
+      WebClient kisRankingWebClient,
+      KisProperties kisProperties,
+      KisRankingProperties kisRankingProperties,
+      KisHttpProperties kisHttpProperties) {
+        return new KisAccessTokenProvider(
+          kisRankingWebClient,
+          kisRankingProperties.resolveAppKey(kisProperties),
+          kisRankingProperties.resolveAppSecret(kisProperties),
+          kisHttpProperties.tokenLockTimeout());
+    }
+    
     private HttpClient httpClient(String poolName, KisHttpProperties properties, Duration responseTimeout) {
         ConnectionProvider connectionProvider = ConnectionProvider.builder(poolName)
                 .maxConnections(properties.maxConnections())
