@@ -51,13 +51,6 @@ public class Post {
     @Column(name = "CONTENT", nullable = false)
     private String content;
 
-    @Column(name = "IS_PROFIT_CERT", nullable = false)
-    private Boolean isProfitCert;
-
-    @Lob
-    @Column(name = "CERT_IMAGE_URL")
-    private String certImageUrl;
-
     @Column(name = "VIEW_COUNT", nullable = false)
     private Integer viewCount;
 
@@ -83,7 +76,6 @@ public class Post {
         this.stockId = stockId;
         this.title = title;
         this.content = content;
-        this.isProfitCert = false;
         this.viewCount = 0;
         this.likeCount = 0;
         this.dislikeCount = 0;

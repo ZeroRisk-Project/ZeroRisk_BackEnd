@@ -3,6 +3,7 @@ package com.zerorisk.project.domain.post.dto;
 import com.zerorisk.project.domain.post.entity.BoardType;
 import com.zerorisk.project.domain.post.entity.Post;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record PostResponse(
         Long id,
@@ -13,8 +14,7 @@ public record PostResponse(
         Long stockId,
         String title,
         String content,
-        boolean isProfitCert,
-        String certImageUrl,
+        List<String> imageUrls,
         int viewCount,
         int likeCount,
         int dislikeCount,
@@ -23,7 +23,7 @@ public record PostResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 
-    public static PostResponse from(Post post, int commentCount, Long viewerId) {
+    public static PostResponse from(Post post, int commentCount, Long viewerId, List<String> imageUrls) {
         boolean isMine = viewerId != null && post.getUser().getId().equals(viewerId);
 
         return new PostResponse(
@@ -35,8 +35,7 @@ public record PostResponse(
                 post.getStockId(),
                 post.getTitle(),
                 post.getContent(),
-                post.getIsProfitCert(),
-                post.getCertImageUrl(),
+                imageUrls,
                 post.getViewCount(),
                 post.getLikeCount(),
                 post.getDislikeCount(),
