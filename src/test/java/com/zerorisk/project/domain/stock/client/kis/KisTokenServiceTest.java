@@ -80,7 +80,9 @@ class KisTokenServiceTest {
         assertThatThrownBy(kisTokenService::getAccessToken).isInstanceOf(Exception.class);
         long elapsed = System.currentTimeMillis() - startedAt;
 
-        assertThat(elapsed).isLessThan(RESPONSE_TIMEOUT.toMillis() + 2000);
+        // 토큰 발급도 다른 KIS 클라이언트와 동일하게 짧게 3회 재시도하므로, 매 시도가
+        // 전부 타임아웃되는 최악의 경우를 기준으로 상한을 넉넉히 잡는다.
+        assertThat(elapsed).isLessThan(3 * RESPONSE_TIMEOUT.toMillis() + 3000);
     }
 
     @DisplayName("다른 스레드가 토큰을 발급 중이면 락 대기 시간만 기다리고 실패")
