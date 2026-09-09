@@ -8,6 +8,8 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,7 +27,8 @@ public class AdminModerationController {
 
     // 관리자 게시글 관리 목록. 삭제 여부와 무관하게 전체 조회 (검색/상태필터는 프론트에서 처리)
     @GetMapping("/posts")
-    public Page<AdminPostResponse> getPosts(Pageable pageable) {
+    public Page<AdminPostResponse> getPosts(
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return adminModerationService.getPosts(pageable);
     }
 

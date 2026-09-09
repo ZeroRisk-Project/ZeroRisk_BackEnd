@@ -12,6 +12,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -44,7 +46,7 @@ public class PostController {
     @GetMapping("/me")
     public ResponseEntity<Page<PostResponse>> getMyPosts(
             @CurrentUserId Long userId,
-            Pageable pageable) {
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(postService.getMyPosts(userId, pageable));
     }
 
@@ -59,7 +61,7 @@ public class PostController {
     public ResponseEntity<Page<PostResponse>> getPosts(
             @CurrentUserId Long viewerId,
             @RequestParam(required = false) BoardType boardType,
-            Pageable pageable) {
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(postService.getPosts(boardType, pageable, viewerId));
     }
 
