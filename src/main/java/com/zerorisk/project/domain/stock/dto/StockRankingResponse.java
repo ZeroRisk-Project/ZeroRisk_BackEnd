@@ -8,5 +8,6 @@ public record StockRankingResponse(
         Long currentPrice,
         Long changeAmount,
         BigDecimal changeRate,
-        Long volume) {
+        Long volume,
+        boolean preferred) {
 }
