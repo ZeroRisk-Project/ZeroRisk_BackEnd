@@ -27,13 +27,13 @@ public class KisRankingClientImpl implements KisRankingClient {
     }
 
     @Override
-    public List<KisRankingResponse.Output> fetchVolumeRanking() {
+    public List<KisRankingResponse.Output> fetchVolumeRanking(String marketCode) {
         KisRankingResponse response = kisRankingWebClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/uapi/domestic-stock/v1/quotations/volume-rank")
                         .queryParam("FID_COND_MRKT_DIV_CODE", "J")
                         .queryParam("FID_COND_SCR_DIV_CODE", "20171")
-                        .queryParam("FID_INPUT_ISCD", "0000")
+                        .queryParam("FID_INPUT_ISCD", marketCode)
                         .queryParam("FID_DIV_CLS_CODE", "0")
                         .queryParam("FID_BLNG_CLS_CODE", "0")
                         .queryParam("FID_TRGT_CLS_CODE", "111111111")
@@ -53,7 +53,8 @@ public class KisRankingClientImpl implements KisRankingClient {
                 .block();
 
         if (response == null || response.output() == null || !"0".equals(response.returnCode())) {
-            throw new IllegalStateException("KIS 거래량순위 조회에 실패했습니다. rt_cd=%s, msg1=%s".formatted(
+            throw new IllegalStateException("KIS 거래량순위 조회에 실패했습니다. marketCode=%s, rt_cd=%s, msg1=%s".formatted(
+              marketCode,
               response == null ? "none" : response.returnCode(),
               response == null ? "none" : response.message()));
         }

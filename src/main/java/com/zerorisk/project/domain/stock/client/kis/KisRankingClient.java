@@ -4,5 +4,5 @@ import com.zerorisk.project.domain.stock.client.kis.dto.KisRankingResponse;
 import java.util.List;
 
 public interface KisRankingClient {
-    List<KisRankingResponse.Output> fetchVolumeRanking();
+    List<KisRankingResponse.Output> fetchVolumeRanking(String marketCode);
 }
