@@ -1,0 +1,16 @@
+package com.zerorisk.project.domain.stock.client.kis.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record KisIndexResponse(
+        @JsonProperty("rt_cd") String returnCode,
+        @JsonProperty("msg1") String message,
+        @JsonProperty("output") Output output) {
+
+    public record Output(
+            @JsonProperty("bstp_nmix_prpr") String currentIndex,
+            @JsonProperty("bstp_nmix_prdy_vrss") String changeAmount,
+            @JsonProperty("prdy_vrss_sign") String changeSign,
+            @JsonProperty("bstp_nmix_prdy_ctrt") String changeRate) {
+    }
+}

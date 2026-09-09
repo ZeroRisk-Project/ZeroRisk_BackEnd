@@ -2,11 +2,13 @@ package com.zerorisk.project.domain.stock.controller;
 
 import com.zerorisk.project.domain.stock.dto.ChartCandleResponse;
 import com.zerorisk.project.domain.stock.dto.ChartInterval;
+import com.zerorisk.project.domain.stock.dto.MarketIndexResponse;
 import com.zerorisk.project.domain.stock.dto.RankingType;
 import com.zerorisk.project.domain.stock.dto.StockDetailResponse;
 import com.zerorisk.project.domain.stock.dto.StockRankingResponse;
 import com.zerorisk.project.domain.stock.dto.StockSummaryResponse;
 import com.zerorisk.project.domain.stock.service.StockChartService;
+import com.zerorisk.project.domain.stock.service.StockIndexService;
 import com.zerorisk.project.domain.stock.service.StockQueryService;
 import com.zerorisk.project.domain.stock.service.StockRankingService;
 import com.zerorisk.project.domain.stock.service.StockSearchService;
@@ -31,6 +33,12 @@ public class StockController {
     private final StockSearchService stockSearchService;
     private final StockRankingService stockRankingService;
     private final StockChartService stockChartService;
+    private final StockIndexService stockIndexService;
+
+    @GetMapping("/indices")
+    public ResponseEntity<List<MarketIndexResponse>> getIndices() {
+        return ResponseEntity.ok(stockIndexService.getIndices());
+    }
 
     @GetMapping("/search")
     public ResponseEntity<Page<StockSummaryResponse>> search(
