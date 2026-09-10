@@ -25,6 +25,13 @@ public class KisStockMasterClientImpl implements KisStockMasterClient {
     private static final int PART2_LENGTH = 228;
     private static final int STANDARD_CODE_END = 21;
     private static final int SHORT_CODE_END = 9;
+    // KIS 종목마스터 PART2(고정폭) 내 지수업종중분류 코드 위치. KIS 공식 오픈소스 파서
+    // (koreainvestment/open-trading-api, kis_kospi_code_mst.py)의 필드 폭 정의를 참고했으나,
+    // 그 스펙(폭 합계 227)과 이 프로젝트가 잘라내는 PART2 길이(228)가 1글자 어긋나 있어
+    // 실제 KIS 공개 종목마스터 파일로 직접 검증한 오프셋을 쓴다(005930/005935, 000270,
+    // 005490, 035420 등으로 대분류는 업종 구분력이 낮아 더 세분화된 중분류를 채택).
+    private static final int SECTOR_CODE_START = 8;
+    private static final int SECTOR_CODE_END = 12;
     private static final Charset MASTER_FILE_CHARSET = Charset.forName("MS949");
 
     private final WebClient stockMasterFileWebClient;
@@ -90,7 +97,17 @@ public class KisStockMasterClientImpl implements KisStockMasterClient {
         }
 
         String code = normalizeCode(rawCode);
-        return Optional.of(new StockMasterRow(code, standardCode, name, market));
+        String part2 = line.substring(line.length() - PART2_LENGTH);
+        String sectorCode = parseSectorCode(part2);
+        return Optional.of(new StockMasterRow(code, standardCode, name, market, sectorCode));
+    }
+
+    private String parseSectorCode(String part2) {
+        if (part2.length() < SECTOR_CODE_END) {
+            return null;
+        }
+        String sectorCode = part2.substring(SECTOR_CODE_START, SECTOR_CODE_END).trim();
+        return sectorCode.isEmpty() ? null : sectorCode;
     }
 
     private String normalizeCode(String rawCode) {

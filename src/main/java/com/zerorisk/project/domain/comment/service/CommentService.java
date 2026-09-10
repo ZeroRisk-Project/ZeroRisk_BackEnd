@@ -45,6 +45,11 @@ public class CommentService {
         if (request.parentId() != null) {
             parent = commentRepository.findByIdAndIsDeletedFalse(request.parentId())
                     .orElseThrow(CommentNotFoundException::new);
+            // 다른 게시글에 달린 댓글을 부모로 지정하면 저장은 되지만 getComments()의 트리 조립에서
+            // 안 보이는 유령 댓글이 된다 - 저장 전에 부모가 같은 게시글에 속하는지 확인한다.
+            if (!parent.getPost().getId().equals(postId)) {
+                throw new CommentNotFoundException();
+            }
         }
 
         Comment comment = Comment.builder()

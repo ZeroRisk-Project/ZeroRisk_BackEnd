@@ -11,7 +11,8 @@ public enum OpenBankingErrorCode {
     ALREADY_AUTHENTICATED("OPENBANKING_001", "이미 계좌 인증이 완료되었습니다.", HttpStatus.CONFLICT),
     AUTH_NOT_FOUND("OPENBANKING_002", "계좌 인증 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
     INSUFFICIENT_BALANCE("OPENBANKING_003", "실계좌 잔액이 부족하여 충전할 수 없습니다.", HttpStatus.BAD_REQUEST),
-    CHARGE_LIMIT_EXCEEDED("OPENBANKING_004", "월 충전 한도를 초과했습니다.", HttpStatus.BAD_REQUEST);
+    CHARGE_LIMIT_EXCEEDED("OPENBANKING_004", "월 충전 한도를 초과했습니다.", HttpStatus.BAD_REQUEST),
+    NO_LINKED_ACCOUNT("OPENBANKING_005", "연동된 계좌 정보를 찾을 수 없습니다.", HttpStatus.SERVICE_UNAVAILABLE);
 
     private final String code;
     private final String message;

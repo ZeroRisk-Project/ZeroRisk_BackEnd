@@ -82,10 +82,11 @@ public class StockMasterSyncService {
                     .standardCode(row.standardCode())
                     .name(row.name())
                     .market(row.market())
+                    .sectorCode(row.sectorCode())
                     .build());
             return true;
         }
-        stock.updateFrom(row.name(), row.standardCode(), row.market());
+        stock.updateFrom(row.name(), row.standardCode(), row.market(), row.sectorCode());
         return false;
     }
 

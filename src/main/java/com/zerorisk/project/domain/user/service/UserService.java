@@ -33,10 +33,13 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -156,7 +159,9 @@ public class UserService {
 
     @Transactional
     public void resetSeedMoney(Long userId) {
-        Account basicAccount = accountRepository.findByUserIdAndAccountType(userId, AccountType.BASIC)
+        // chargeSeedMoney()도 같은 락(findBasicAccountByUserIdForUpdate)을 쓰므로, 동시 요청 시
+        // 방금 충전된 금액을 0으로 덮어쓰는 잔액 유실 없이 순서대로 직렬화된다.
+        Account basicAccount = accountRepository.findBasicAccountByUserIdForUpdate(userId)
                 .orElseThrow(() -> new AccountException(AccountErrorCode.NOT_FOUND));
 
         basicAccount.zeroBalance();
@@ -177,16 +182,31 @@ public class UserService {
             throw new PracticeCreditNotEligibleException();
         }
 
-        Account basicAccount = accountRepository.findByUserIdAndAccountType(userId, AccountType.BASIC)
-                .orElseGet(() -> accountRepository.save(
-                        Account.builder()
-                                .userId(userId)
-                                .accountType(AccountType.BASIC)
-                                .build()));
+        Account basicAccount = accountRepository.findBasicAccountByUserIdForUpdate(userId)
+                .orElseGet(() -> createBasicAccountSafely(userId));
 
         basicAccount.addSeedMoney(PRACTICE_CREDIT_AMOUNT);
         user.claimPracticeCredit();
 
         userActivityLogger.log(userId, "PRACTICE_CREDIT", "연습용 크레딧 100만원 지급");
+    }
+
+    // BASIC 계좌는 사용자당 하나만 있어야 한다(ACCOUNTS 유니크 제약으로 DB에서도 강제).
+    // 동시에 여러 경로(연습용 크레딧/오픈뱅킹 인증)로 계좌가 없다고 판단해 동시에 생성을 시도하면
+    // 나중에 커밋되는 쪽이 유니크 제약 위반을 받는데, 이 경우 먼저 만들어진 계좌를 락 걸어 다시 읽어온다.
+    private Account createBasicAccountSafely(Long userId) {
+        try {
+            // 유니크 제약 위반이 이 안에서 바로 터지도록 flush까지 강제한다(save()만으로는
+            // 실제 INSERT가 트랜잭션 커밋 시점까지 지연되어 여기서 못 잡을 수 있음).
+            return accountRepository.saveAndFlush(
+                    Account.builder()
+                            .userId(userId)
+                            .accountType(AccountType.BASIC)
+                            .build());
+        } catch (DataIntegrityViolationException e) {
+            log.info("BASIC 계좌 동시 생성 감지 - userId: {}, 기존 계좌를 재사용합니다.", userId);
+            return accountRepository.findBasicAccountByUserIdForUpdate(userId)
+                    .orElseThrow(() -> new AccountException(AccountErrorCode.NOT_FOUND));
+        }
     }
 }

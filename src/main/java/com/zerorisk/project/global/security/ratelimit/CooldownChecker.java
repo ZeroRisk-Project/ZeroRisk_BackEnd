@@ -19,4 +19,9 @@ public class CooldownChecker {
         Boolean acquired = redisTemplate.opsForValue().setIfAbsent(key, "1", cooldown);
         return Boolean.TRUE.equals(acquired);
     }
+
+    // 배치 작업의 중복 실행 방지 락처럼, 작업이 끝나면 TTL을 다 기다리지 않고 바로 풀어줘야 하는 경우에 쓴다.
+    public void release(String key) {
+        redisTemplate.delete(key);
+    }
 }

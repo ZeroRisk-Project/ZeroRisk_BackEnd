@@ -92,7 +92,11 @@ public class OrderService {
 
         if (request.side() == OrderSide.SELL) {
             long ownedQuantity = holding == null ? 0 : holding.getQuantity();
-            if (ownedQuantity < request.quantity()) {
+            // 이미 걸려있는 다른 PENDING 지정가 매도 주문들이 약속한 수량은 또 팔 수 없다 -
+            // 이걸 안 빼면 같은 주식을 두 번 팔겠다고 접수해버려서, 나중에 하나는 조용히 영원히
+            // 체결 안 되는 상태로 남는다.
+            long reservedQuantity = orderRepository.sumPendingSellReservedQuantity(account.getId(), stock.getId()).longValue();
+            if (ownedQuantity - reservedQuantity < request.quantity()) {
                 throw new OrderException(OrderErrorCode.INSUFFICIENT_HOLDING);
             }
         }
@@ -103,7 +107,11 @@ public class OrderService {
 
         if (request.side() == OrderSide.BUY) {
             BigDecimal cost = executionPrice.multiply(BigDecimal.valueOf(request.quantity()));
-            if (account.getBalance().compareTo(cost) < 0) {
+            // 이미 걸려있는 다른 PENDING 지정가 매수 주문들이 약속한 금액도 뺀 "실제 가용 잔고"로 판단한다 -
+            // 안 그러면 잔고 10,000원으로 10,000원짜리 지정가 매수를 두 번 접수받을 수 있다.
+            BigDecimal reservedAmount = orderRepository.sumPendingBuyReservedAmount(account.getId());
+            BigDecimal availableBalance = account.getBalance().subtract(reservedAmount);
+            if (availableBalance.compareTo(cost) < 0) {
                 throw new OrderException(OrderErrorCode.INSUFFICIENT_BALANCE);
             }
         }
@@ -222,7 +230,16 @@ public class OrderService {
         log.info("예약 주문 체결 배치 완료: {}건", filled);
     }
 
-    private boolean tryFillPendingOrder(Order order) {
+    private boolean tryFillPendingOrder(Order staleOrder) {
+        // fillPendingOrders() 최초 조회는 락 없는 스냅샷이라, KIS 시세 조회로 지연되는 동안
+        // 사용자가 이 주문을 취소했을 수 있다. 실제 체결 직전에 락을 걸고 상태를 다시 확인해서,
+        // 이미 취소된 주문을 체결해버리는 레이스(cancelOrder도 findById에 같은 락을 쓴다)를 막는다.
+        Order order = orderRepository.findById(staleOrder.getId())
+                .orElse(null);
+        if (order == null || !order.isPending()) {
+            return false;
+        }
+
         Account account = accountRepository.findByIdForUpdate(order.getAccountId())
                 .orElse(null);
         if (account == null) {

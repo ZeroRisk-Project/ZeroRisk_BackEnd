@@ -36,9 +36,7 @@ public class NotificationSseSender {
             notificationMetrics.recordRetry();
         }
 
-        sseEmitterService.send(userId, response);
-
-        return true;
+        return sseEmitterService.send(userId, response);
     }
 
     // 재시도 전부 실패 시 호출됨. 반환 타입은 send()와 동일해야 함(boolean).

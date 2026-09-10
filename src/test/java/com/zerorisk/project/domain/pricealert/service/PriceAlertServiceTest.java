@@ -149,7 +149,9 @@ class PriceAlertServiceTest {
     void 현재가가_목표가_이상이면_알림을_발송하고_알림을_삭제() {
         priceAlertService = new PriceAlertService(priceAlertRepository, stockRepository, kisQuoteClient, notificationService);
         PriceAlert alert = alert(1L);
+        ReflectionTestUtils.setField(alert, "id", 20L);
         given(priceAlertRepository.findAll()).willReturn(List.of(alert));
+        given(priceAlertRepository.findById(20L)).willReturn(Optional.of(alert));
         given(stockRepository.findAllById(List.of(1L))).willReturn(List.of(stock()));
         given(kisQuoteClient.fetchQuote("005930")).willReturn(new KisQuoteResponse.Output(
                 "80000", "1000", "2", "1.26", "88800", "49900"));
