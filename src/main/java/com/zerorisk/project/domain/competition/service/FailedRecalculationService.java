@@ -41,6 +41,34 @@ public class FailedRecalculationService {
     }
 
     // 관리자가 수동으로 재처리를 트리거하는 경로. recalculate()를 다시 호출하므로 @Retryable도 그대로 다시 탄다.
+    // 스케줄러(자동 재시도) 전용 - 관리자 수동 재처리(retryResolve)와 달리 특정 관리자의 행위가
+    // 아니므로 감사 로그를 남기지 않고, 실패해도 예외를 던지지 않아 나머지 건 처리를 막지 않는다.
+    @Transactional
+    public void retryAutomatically(Long failedRecalculationId) {
+        FailedRecalculation failure = failedRecalculationRepository.findById(failedRecalculationId)
+                .orElse(null);
+        if (failure == null || failure.isResolved()) {
+            return;
+        }
+
+        CompetitionParticipant participant = competitionParticipantRepository.findById(failure.getParticipantId())
+                .orElse(null);
+        if (participant == null) {
+            return;
+        }
+
+        try {
+            competitionAssetService.recalculate(participant);
+            failure.markResolved();
+            recalculationMetrics.recordDlqResolved();
+            log.info("재평가 실패 건 자동 재시도 성공 - failedRecalculationId: {}", failedRecalculationId);
+        } catch (Exception e) {
+            failure.incrementRetryCount();
+            log.warn("재평가 실패 건 자동 재시도 실패 - failedRecalculationId: {}, reason: {}",
+                    failedRecalculationId, e.getMessage());
+        }
+    }
+
     @Transactional
     public void retryResolve(Long failedRecalculationId, Long adminId) {
         FailedRecalculation failure = failedRecalculationRepository.findById(failedRecalculationId)

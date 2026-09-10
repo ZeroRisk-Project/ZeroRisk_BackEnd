@@ -1,8 +1,10 @@
 package com.zerorisk.project.domain.portfolio.controller;
 
 import com.zerorisk.project.domain.portfolio.dto.PortfolioCompositionResponse;
+import com.zerorisk.project.domain.portfolio.dto.PortfolioRiskResponse;
 import com.zerorisk.project.domain.portfolio.dto.PortfolioSnapshotResponse;
 import com.zerorisk.project.domain.portfolio.service.PortfolioCompositionService;
+import com.zerorisk.project.domain.portfolio.service.PortfolioRiskService;
 import com.zerorisk.project.domain.portfolio.service.PortfolioSnapshotService;
 import com.zerorisk.project.global.security.CurrentUserId;
 import java.time.LocalDate;
@@ -22,12 +24,20 @@ public class PortfolioController {
 
     private final PortfolioCompositionService portfolioCompositionService;
     private final PortfolioSnapshotService portfolioSnapshotService;
+    private final PortfolioRiskService portfolioRiskService;
 
     @GetMapping("/composition")
     public ResponseEntity<PortfolioCompositionResponse> getComposition(
             @CurrentUserId Long userId,
             @RequestParam Long accountId) {
         return ResponseEntity.ok(portfolioCompositionService.getComposition(userId, accountId));
+    }
+
+    @GetMapping("/risk")
+    public ResponseEntity<PortfolioRiskResponse> getRisk(
+            @CurrentUserId Long userId,
+            @RequestParam Long accountId) {
+        return ResponseEntity.ok(portfolioRiskService.getRisk(userId, accountId));
     }
 
     @GetMapping("/snapshots")

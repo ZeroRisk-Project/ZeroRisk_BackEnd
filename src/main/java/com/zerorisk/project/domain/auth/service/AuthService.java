@@ -11,10 +11,12 @@ import com.zerorisk.project.global.audit.UserActivityLogger;
 import com.zerorisk.project.global.security.JwtTokenProvider;
 import com.zerorisk.project.global.security.OpaqueTokenGenerator;
 import com.zerorisk.project.global.security.captcha.RecaptchaVerifier;
+import com.zerorisk.project.global.exception.InvalidKakaoWebhookException;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private static final String REFRESH_KEY_PREFIX = "refresh:";
+
+    // 이메일이 존재하지 않을 때도 BCrypt 비교를 수행시켜, 존재/미존재 응답 시간 차이로
+    // 이메일 존재 여부가 유추되지 않도록 한다(타이밍 사이드채널 방지).
+    private static final String DUMMY_PASSWORD_HASH =
+            new BCryptPasswordEncoder().encode("dummy-password-for-constant-time-login");
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -37,6 +44,9 @@ public class AuthService {
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpirationMillis;
 
+    @Value("${kakao.app-id:}")
+    private String kakaoAppId;
+
     @Transactional(readOnly = true)
     public TokenResult login(LoginRequest request, String clientIp) {
         if (loginAttemptService.isCaptchaRequired(request.email(), clientIp)) {
@@ -45,8 +55,12 @@ public class AuthService {
 
         User user = userRepository.findByEmail(request.email()).orElse(null);
 
-        if (user == null || user.getPassword() == null
-                || !passwordEncoder.matches(request.password(), user.getPassword())) {
+        String passwordHashToCheck = (user != null && user.getPassword() != null)
+                ? user.getPassword()
+                : DUMMY_PASSWORD_HASH;
+        boolean passwordMatches = passwordEncoder.matches(request.password(), passwordHashToCheck);
+
+        if (user == null || user.getPassword() == null || !passwordMatches) {
             loginAttemptService.recordFailure(request.email(), clientIp);
             throw new InvalidCredentialsException();
         }
@@ -96,7 +110,11 @@ public class AuthService {
     }
 
     @Transactional
-    public void handleKakaoUnlink(String kakaoUserId) {
+    public void handleKakaoUnlink(String appId, String kakaoUserId) {
+        if (kakaoAppId.isBlank() || !kakaoAppId.equals(appId)) {
+            throw new InvalidKakaoWebhookException();
+        }
+
         userRepository.findByOauthProviderAndOauthProviderId(OAuthProvider.KAKAO, kakaoUserId)
                 .ifPresent(User::withdraw);
     }

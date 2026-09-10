@@ -72,9 +72,24 @@ public class PortfolioSnapshotService {
 
         Map<Long, BigDecimal> priceByStockId = fetchCurrentPrices(holdingsByAccountId.values());
         int created = 0;
+        int skipped = 0;
         for (Account account : targetAccounts) {
-            BigDecimal stockValue = holdingsByAccountId.get(account.getId()).stream()
-                    .map(holding -> priceByStockId.getOrDefault(holding.getStockId(), BigDecimal.ZERO)
+            List<Holding> holdings = holdingsByAccountId.get(account.getId());
+
+            // 시세 조회에 실패한 종목을 0원으로 대체하면 그 계좌의 자산가치/수익률이 실제보다
+            // 작게 잘못 계산되고, 이 값이 그대로 공개 랭킹 리더보드에 반영된다. 하루 스냅샷이
+            // 하나 빠지는 것(다음날 다시 시도됨)이 잘못된 수익률로 랭킹이 왜곡되는 것보다 안전하다.
+            boolean hasMissingPrice = holdings.stream()
+                    .anyMatch(holding -> !priceByStockId.containsKey(holding.getStockId()));
+            if (hasMissingPrice) {
+                log.warn("계좌 {}의 보유 종목 중 시세 조회에 실패한 종목이 있어 이번 회차 스냅샷 생성을 건너뜁니다.",
+                        account.getId());
+                skipped++;
+                continue;
+            }
+
+            BigDecimal stockValue = holdings.stream()
+                    .map(holding -> priceByStockId.get(holding.getStockId())
                             .multiply(BigDecimal.valueOf(holding.getQuantity())))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -87,7 +102,7 @@ public class PortfolioSnapshotService {
             created++;
         }
 
-        log.info("일별 자산 스냅샷 생성 완료: {}건", created);
+        log.info("일별 자산 스냅샷 생성 완료: {}건, 건너뜀: {}건", created, skipped);
     }
 
     private Map<Long, BigDecimal> fetchCurrentPrices(Collection<List<Holding>> holdingLists) {

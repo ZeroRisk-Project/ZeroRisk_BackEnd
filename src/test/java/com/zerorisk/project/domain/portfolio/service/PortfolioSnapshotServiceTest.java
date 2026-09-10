@@ -134,6 +134,36 @@ class PortfolioSnapshotServiceTest {
         assertThat(captor.getValue().getTotalAsset()).isEqualByComparingTo("1000000");
     }
 
+    @DisplayName("보유 종목의 시세 조회가 실패하면 해당 계좌는 스냅샷 생성을 건너뜀")
+    @Test
+    void 보유_종목의_시세_조회가_실패하면_해당_계좌는_스냅샷_생성을_건너뜀() {
+        portfolioSnapshotService = new PortfolioSnapshotService(
+                accountRepository, portfolioSnapshotRepository, holdingRepository, stockRepository, kisQuoteClient);
+        Account account = Account.builder()
+                .userId(1L)
+                .accountType(AccountType.BASIC)
+                .build();
+        account.addBalance(new BigDecimal("300000"));
+        ReflectionTestUtils.setField(account, "id", 10L);
+        Holding holding = Holding.builder()
+                .accountId(10L)
+                .stockId(1L)
+                .quantity(10L)
+                .averagePrice(new BigDecimal("60000"))
+                .build();
+        given(accountRepository.findAll()).willReturn(List.of(account));
+        given(portfolioSnapshotRepository.existsByAccountIdAndSnapshotDate(10L, LocalDate.now())).willReturn(false);
+        given(holdingRepository.findByAccountId(10L)).willReturn(List.of(holding));
+        given(stockRepository.findAllById(any())).willReturn(List.of(stock()));
+        given(kisQuoteClient.fetchQuote("005930")).willThrow(new RuntimeException("KIS 조회 실패"));
+
+        portfolioSnapshotService.createDailySnapshots();
+
+        // 시세 조회 실패를 0원으로 대체해서 자산가치를 잘못 계산하는 대신, 이 계좌의 스냅샷 생성 자체를
+        // 건너뛴다 - 잘못된 수익률이 공개 랭킹에 반영되는 것보다 하루 스냅샷이 빠지는 게 안전하다.
+        verify(portfolioSnapshotRepository, never()).save(any(PortfolioSnapshot.class));
+    }
+
     @DisplayName("기간을 지정하면 해당 기간의 자산 추이 조회")
     @Test
     void 기간을_지정하면_해당_기간의_자산_추이_조회() {

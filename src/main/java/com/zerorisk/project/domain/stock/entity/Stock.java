@@ -43,6 +43,10 @@ public class Stock {
     @Column(name = "MARKET", nullable = false, length = 10)
     private Market market;
 
+    // KIS 종목마스터 PART2의 지수업종중분류 코드. 파싱 실패/미제공 시 null일 수 있다.
+    @Column(name = "SECTOR_CODE", length = 10)
+    private String sectorCode;
+
     @Column(name = "ACTIVE", nullable = false)
     private Boolean active;
 
@@ -53,20 +57,22 @@ public class Stock {
     private LocalDateTime updatedAt;
 
     @Builder
-    private Stock(String code, String standardCode, String name, Market market) {
+    private Stock(String code, String standardCode, String name, Market market, String sectorCode) {
         this.code = code;
         this.standardCode = standardCode;
         this.name = name;
         this.market = market;
+        this.sectorCode = sectorCode;
         this.active = true;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void updateFrom(String name, String standardCode, Market market) {
+    public void updateFrom(String name, String standardCode, Market market, String sectorCode) {
         this.name = name;
         this.standardCode = standardCode;
         this.market = market;
+        this.sectorCode = sectorCode;
         this.active = true;
         this.updatedAt = LocalDateTime.now();
     }

@@ -47,8 +47,8 @@ class StockMasterSyncServiceTest {
                 kisStockMasterClient, stockRepository, stockAliasCache, transactionManager);
 
         given(kisStockMasterClient.fetchAll()).willReturn(List.of(
-                new StockMasterRow("000001", "KR001", "정상종목", Market.KOSPI),
-                new StockMasterRow("000002", "KR002", "실패종목", Market.KOSPI)));
+                new StockMasterRow("000001", "KR001", "정상종목", Market.KOSPI, null),
+                new StockMasterRow("000002", "KR002", "실패종목", Market.KOSPI, null)));
 
         given(stockRepository.findByCode("000001")).willReturn(Optional.empty());
         given(stockRepository.findByCode("000002")).willReturn(Optional.empty());

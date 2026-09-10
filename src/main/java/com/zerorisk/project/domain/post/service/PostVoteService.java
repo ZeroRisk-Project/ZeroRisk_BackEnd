@@ -11,11 +11,15 @@ import com.zerorisk.project.domain.user.repository.UserRepository;
 import com.zerorisk.project.global.exception.PostNotFoundException;
 import com.zerorisk.project.global.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// 주의: (POST_ID, USER_ID) UNIQUE 제약이 DDL에 없어서 동시 요청 시 중복 행 가능성 있음.
-// DB 제약 추가 전까지는 이 로직이 유일한 방어선.
+// (POST_ID, USER_ID) UNIQUE 제약을 DB에 추가함 - 동시 요청으로 두 트랜잭션이 모두 "투표 없음"으로
+// 판단해 동시에 insert를 시도하면, 나중에 flush되는 쪽이 제약 위반을 받는다. createVote()에서
+// saveAndFlush + catch로 그 경우를 조용히 무시(이미 다른 요청이 처리함)하도록 방어한다.
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PostVoteService {
@@ -54,7 +58,12 @@ public class PostVoteService {
                 .voteType(voteType)
                 .build();
 
-        postVoteRepository.save(vote);
+        try {
+            postVoteRepository.saveAndFlush(vote);
+        } catch (DataIntegrityViolationException e) {
+            log.info("게시글 {} 투표 동시 생성 감지 - userId: {}, 이미 처리된 것으로 보고 무시합니다.", post.getId(), userId);
+            return;
+        }
 
         increaseCount(post, voteType);
     }

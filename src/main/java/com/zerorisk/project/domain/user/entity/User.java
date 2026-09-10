@@ -101,7 +101,10 @@ public class User {
 
     public void withdraw() {
         this.status = UserStatus.QUIT;
-        this.nickname = "탈퇴" + this.id; // NICKNAME 컬럼이 길이 12 제한이라 짧게 (id는 PK라 충돌 걱정 없음)
+        // NICKNAME은 BYTE 기준 12바이트 제한("탈퇴" 6바이트 + 나머지 6바이트).
+        // id를 10진수로 그대로 붙이면 7자리(백만) 이상부터 ORA-12899가 난다.
+        // 36진수(0-9,a-z)로 줄이면 같은 6바이트로 36^6(약 21억)개 id까지 안전하게 담긴다.
+        this.nickname = "탈퇴" + Long.toString(this.id, 36);
     }
 
     public void suspend(LocalDateTime until, String reason) {

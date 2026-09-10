@@ -3,6 +3,7 @@ package com.zerorisk.project.domain.stock.controller;
 import com.zerorisk.project.domain.stock.dto.ChartCandleResponse;
 import com.zerorisk.project.domain.stock.dto.ChartInterval;
 import com.zerorisk.project.domain.stock.dto.MarketIndexResponse;
+import com.zerorisk.project.domain.stock.dto.OrderBookResponse;
 import com.zerorisk.project.domain.stock.dto.RankingType;
 import com.zerorisk.project.domain.stock.dto.StockDetailResponse;
 import com.zerorisk.project.domain.stock.dto.StockRankingResponse;
@@ -64,5 +65,10 @@ public class StockController {
     @GetMapping("/{code}")
     public ResponseEntity<StockDetailResponse> getDetail(@PathVariable String code) {
         return ResponseEntity.ok(stockQueryService.getDetail(code));
+    }
+
+    @GetMapping("/{code}/orderbook")
+    public ResponseEntity<OrderBookResponse> getOrderBook(@PathVariable String code) {
+        return ResponseEntity.ok(stockQueryService.getOrderBook(code));
     }
 }

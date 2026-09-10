@@ -2,8 +2,10 @@ package com.zerorisk.project.domain.report.service;
 
 import com.zerorisk.project.domain.chat.entity.ChatMessage;
 import com.zerorisk.project.domain.chat.repository.ChatMessageRepository;
+import com.zerorisk.project.domain.comment.entity.Comment;
 import com.zerorisk.project.domain.comment.repository.CommentPostIdProjection;
 import com.zerorisk.project.domain.comment.repository.CommentRepository;
+import com.zerorisk.project.domain.post.entity.Post;
 import com.zerorisk.project.domain.post.repository.PostRepository;
 import com.zerorisk.project.domain.report.dto.ReportCreateRequest;
 import com.zerorisk.project.domain.report.dto.ReportProcessRequest;
@@ -125,6 +127,7 @@ public class ReportService {
 
         if (request.status() == ReportStatus.PROCESSED) {
             report.process();
+            hideTargetIfApplicable(report.getTargetType(), report.getTargetId());
         } else {
             report.reject();
         }
@@ -134,5 +137,16 @@ public class ReportService {
                 String.format("신고 #%d 처리 (%s 대상)", reportId, report.getTargetType()));
 
         return ReportResponse.from(report, resolveTargetPostId(report.getTargetType(), report.getTargetId()));
+    }
+
+    // 신고를 "처리완료"로 확정하면 실제로 대상 게시글/댓글을 숨긴다(soft-delete) - 상태값만
+    // 바뀌고 아무 효과가 없던 문제를 고친다. CHAT/USER 대상은 별도 관리자 화면(정지 등)에서
+    // 다루므로 여기서는 건드리지 않는다.
+    private void hideTargetIfApplicable(TargetType targetType, Long targetId) {
+        switch (targetType) {
+            case POST -> postRepository.findByIdAndIsDeletedFalse(targetId).ifPresent(Post::softDelete);
+            case COMMENT -> commentRepository.findByIdAndIsDeletedFalse(targetId).ifPresent(Comment::softDelete);
+            case CHAT, USER -> { /* 별도 관리 화면에서 처리 */ }
+        }
     }
 }

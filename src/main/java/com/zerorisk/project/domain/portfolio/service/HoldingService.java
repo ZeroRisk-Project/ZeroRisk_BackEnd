@@ -13,12 +13,15 @@ import com.zerorisk.project.domain.stock.repository.StockRepository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class HoldingService {
@@ -47,13 +50,19 @@ public class HoldingService {
         return holdings.stream()
                 .map(holding -> {
                     Stock stock = stocksById.get(holding.getStockId());
-                    BigDecimal currentPrice = fetchCurrentPrice(stock.getCode());
+                    BigDecimal currentPrice = fetchCurrentPrice(stock.getCode())
+                            .orElse(holding.getAveragePrice());
                     return HoldingResponse.of(holding, stock, currentPrice);
                 })
                 .toList();
     }
 
-    private BigDecimal fetchCurrentPrice(String code) {
-        return new BigDecimal(kisQuoteClient.fetchQuote(code).currentPrice());
+    private Optional<BigDecimal> fetchCurrentPrice(String code) {
+        try {
+            return Optional.of(new BigDecimal(kisQuoteClient.fetchQuote(code).currentPrice()));
+        } catch (Exception e) {
+            log.warn("종목 {} 현재가 조회에 실패하여 평균 매입가로 대체합니다.", code, e);
+            return Optional.empty();
+        }
     }
 }
