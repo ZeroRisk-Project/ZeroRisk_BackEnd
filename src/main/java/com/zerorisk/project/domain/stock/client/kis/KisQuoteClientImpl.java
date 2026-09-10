@@ -2,6 +2,9 @@ package com.zerorisk.project.domain.stock.client.kis;
 
 import com.zerorisk.project.domain.stock.client.kis.dto.KisQuoteResponse;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -17,12 +20,28 @@ public class KisQuoteClientImpl implements KisQuoteClient {
     private static final int MAX_ATTEMPTS = 3;
     private static final Duration RETRY_DELAY = Duration.ofMillis(500);
 
+    // "전체보기" 목록과 상세 페이지가 짧은 시간에 같은 종목을 중복 조회하는 경우가 많아,
+    // 종목코드별로 짧게 캐싱해 불필요한 KIS 호출과 응답 지연을 줄인다.
+    private static final Duration CACHE_TTL = Duration.ofSeconds(2);
+
     private final WebClient kisWebClient;
     private final KisTokenService kisTokenService;
     private final KisProperties kisProperties;
+    private final Map<String, CachedQuote> cache = new ConcurrentHashMap<>();
 
     @Override
     public KisQuoteResponse.Output fetchQuote(String code) {
+        CachedQuote cached = cache.get(code);
+        if (cached != null && Instant.now().isBefore(cached.expiresAt())) {
+            return cached.output();
+        }
+
+        KisQuoteResponse.Output output = requestQuote(code);
+        cache.put(code, new CachedQuote(output, Instant.now().plus(CACHE_TTL)));
+        return output;
+    }
+
+    private KisQuoteResponse.Output requestQuote(String code) {
         IllegalStateException failure = null;
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             KisQuoteResponse response = kisWebClient.get()
@@ -62,5 +81,8 @@ public class KisQuoteClientImpl implements KisQuoteClient {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    private record CachedQuote(KisQuoteResponse.Output output, Instant expiresAt) {
     }
 }
