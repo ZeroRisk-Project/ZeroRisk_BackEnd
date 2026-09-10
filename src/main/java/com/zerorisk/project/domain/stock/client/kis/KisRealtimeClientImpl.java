@@ -134,11 +134,14 @@ public class KisRealtimeClientImpl implements KisRealtimeClient {
             String code = fields[0];
             long currentPrice = Long.parseLong(fields[2]);
             String changeSign = fields[3];
-            long changeAmount = Long.parseLong(fields[4]);
+            long changeAmount = Math.abs(Long.parseLong(fields[4]));
             if (NEGATIVE_SIGNS.contains(changeSign)) {
                 changeAmount = -changeAmount;
             }
-            BigDecimal changeRate = new BigDecimal(fields[5]);
+            BigDecimal changeRate = new BigDecimal(fields[5]).abs();
+            if (NEGATIVE_SIGNS.contains(changeSign)) {
+                changeRate = changeRate.negate();
+            }
 
             stockPriceWebSocketHandler.broadcast(
                     code, new StockPriceMessage(code, currentPrice, changeAmount, changeRate));

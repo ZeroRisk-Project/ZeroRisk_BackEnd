@@ -33,15 +33,19 @@ public class StockIndexService {
     private MarketIndexResponse fetch(Market market, String indexCode) {
         try {
             KisIndexResponse.Output output = kisIndexClient.fetchIndex(indexCode);
-            BigDecimal changeAmount = new BigDecimal(output.changeAmount());
+            BigDecimal changeAmount = new BigDecimal(output.changeAmount()).abs();
             if (NEGATIVE_SIGNS.contains(output.changeSign())) {
                 changeAmount = changeAmount.negate();
+            }
+            BigDecimal changeRate = new BigDecimal(output.changeRate()).abs();
+            if (NEGATIVE_SIGNS.contains(output.changeSign())) {
+                changeRate = changeRate.negate();
             }
             return new MarketIndexResponse(
                     market,
                     new BigDecimal(output.currentIndex()),
                     changeAmount,
-                    new BigDecimal(output.changeRate()));
+                    changeRate);
         } catch (Exception e) {
             log.warn("지수 조회 실패: market={}", market, e);
             return null;
