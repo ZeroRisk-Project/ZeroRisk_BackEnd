@@ -25,7 +25,13 @@ public class RankingRefreshScheduler {
         log.info("랭킹 캐시 갱신 시작");
 
         for (RankingPeriod period : RankingPeriod.values()) {
-            rankingService.refreshRanking(period);
+            try {
+                rankingService.refreshRanking(period);
+            } catch (Exception e) {
+                // 한 기간(period)의 갱신이 실패해도 나머지 기간은 계속 갱신한다 - 여기서 멈추면
+                // 예외 없이 조용히 나머지 캐시가 그날 내내 stale 상태로 남는다.
+                log.error("랭킹 캐시 갱신 실패 - period: {}", period, e);
+            }
         }
 
         log.info("랭킹 캐시 갱신 완료");

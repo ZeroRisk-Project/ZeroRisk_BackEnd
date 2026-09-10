@@ -31,6 +31,21 @@ class KisStockMasterClientImplTest {
         assertThat(result.get().market()).isEqualTo(Market.KOSPI);
     }
 
+    @DisplayName("PART2에서 지수업종중분류 코드를 추출")
+    @Test
+    void PART2에서_지수업종중분류_코드를_추출() {
+        String shortCode = pad("A005930", 9);
+        String standardCode = pad("KR7005930003", 12);
+        String name = "삼성전자";
+        String part2 = pad("01234567" + "0013", 228);
+        String line = shortCode + standardCode + name + part2;
+
+        Optional<StockMasterRow> result = client.parseLine(line, Market.KOSPI);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().sectorCode()).isEqualTo("0013");
+    }
+
     @DisplayName("뒷부분 228자보다 짧은 라인은 무시")
     @Test
     void 뒷부분_228자보다_짧은_라인은_무시() {

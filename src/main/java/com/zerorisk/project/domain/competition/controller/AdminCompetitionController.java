@@ -50,7 +50,8 @@ public class AdminCompetitionController {
     @DeleteMapping("/{competitionId}/participants/{userId}")
     public void expelParticipant(
             @PathVariable Long competitionId,
-            @PathVariable Long userId) {
-        competitionService.expelParticipant(competitionId, userId);
+            @PathVariable Long userId,
+            @CurrentUserId Long adminUserId) {
+        competitionService.expelParticipant(competitionId, userId, adminUserId);
     }
 }

@@ -2,6 +2,7 @@ package com.zerorisk.project.global.exception;
 
 import com.zerorisk.project.domain.watchlist.exception.WatchlistException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -118,6 +119,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(StockNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleStockNotFound(StockNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("STOCK_001", e.getMessage()));
+    }
+
+    @ExceptionHandler(StockQuoteUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleStockQuoteUnavailable(StockQuoteUnavailableException e) {
+        log.warn("현재가 조회 실패", e);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse("STOCK_002", e.getMessage()));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -259,5 +267,21 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handlePriceAlert(PriceAlertException e) {
         return ResponseEntity.status(e.getErrorCode().getStatus())
                 .body(new ErrorResponse(e.getErrorCode().getCode(), e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidKakaoWebhookException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidKakaoWebhook(InvalidKakaoWebhookException e) {
+        log.warn("유효하지 않은 카카오 웹훅 요청 차단");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse("AUTH_011", e.getMessage()));
+    }
+
+    // 동시 요청으로 DB의 유니크/체크 제약을 위반한 경우(예: 팔로우 중복, 좋아요/투표 중복)의 최종
+    // 방어선. 개별 서비스에서 더 구체적인 예외로 미리 잡아 처리하지 못한 나머지가 여기로 온다 -
+    // 이런 경우는 서버 오류(500)가 아니라 "이미 처리된 요청" 충돌(409)로 보는 게 맞다.
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        log.warn("DB 제약 위반으로 요청 거부", e);
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("COMMON_001", "이미 처리된 요청입니다."));
     }
 }

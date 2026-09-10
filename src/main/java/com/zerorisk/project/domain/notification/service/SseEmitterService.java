@@ -30,21 +30,28 @@ public class SseEmitterService {
         return emitter;
     }
 
-    public void send(Long userId, Object data) {
+    // 반환값은 "실제로 연결된 클라이언트에 전송했는지"를 뜻한다 - 단순히 유저가 오프라인이라
+    // emitter가 없는 경우는 실패가 아니라 정상적인 상황이라 false만 돌려주고 예외는 던지지 않는다
+    // (호출부의 @Retryable이 이 경우까지 재시도/DLQ 격리하지 않도록).
+    public boolean send(Long userId, Object data) {
         SseEmitter emitter = emitters.get(userId);
 
         if (emitter == null) {
-            return;
+            return false;
         }
 
-        sendToEmitter(emitter, "notification", data);
+        return sendToEmitter(emitter, "notification", data);
     }
 
-    private void sendToEmitter(SseEmitter emitter, String eventName, Object data) {
+    private boolean sendToEmitter(SseEmitter emitter, String eventName, Object data) {
         try {
             emitter.send(SseEmitter.event().name(eventName).data(data));
-        } catch (IOException e) {
+            return true;
+        } catch (IOException | IllegalStateException e) {
+            // IllegalStateException은 이미 완료(completed)된 emitter에 보내려 할 때 발생한다.
+            // 이것도 못 잡으면 죽은 emitter가 맵에 계속 남아 다음 알림마다 똑같이 재시도만 낭비한다.
             emitters.remove(findUserIdByEmitter(emitter));
+            return false;
         }
     }
 

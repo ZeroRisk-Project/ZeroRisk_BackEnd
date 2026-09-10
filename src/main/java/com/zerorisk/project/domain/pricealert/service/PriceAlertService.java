@@ -81,7 +81,10 @@ public class PriceAlertService {
         priceAlertRepository.delete(alert);
     }
 
-    @Transactional
+    // 의도적으로 @Transactional을 안 붙임. 종목 수만큼의 KIS 조회 대기(0.6초 x N)와, 알림마다
+    // SSE 재시도(최대 수 초)까지 하나의 트랜잭션으로 묶으면 그 시간 내내 DB 커넥션을 붙잡게 되어
+    // 커넥션 풀 고갈/락 경쟁 위험이 커진다. 알림 조회/종목 조회/삭제는 각 리포지토리 호출이 자체
+    // 트랜잭션으로 처리하고, 알림 하나 처리는 dispatchSingleAlert()로 분리해 예외를 격리한다.
     public void dispatchAlerts() {
         List<PriceAlert> alerts = priceAlertRepository.findAll();
         if (alerts.isEmpty()) {
@@ -103,16 +106,32 @@ public class PriceAlertService {
                 continue;
             }
 
-            notificationService.createNotification(
-                    alert.getUserId(),
-                    NotificationType.PRICE_ALERT,
-                    "목표가 도달 알림",
-                    stock.getName() + " 종목이 목표가 " + alert.getTargetPrice() + "원에 도달했습니다.",
-                    "/stocks/" + stock.getCode());
-            priceAlertRepository.delete(alert);
-            dispatched++;
+            try {
+                dispatchSingleAlert(alert.getId(), stock);
+                dispatched++;
+            } catch (Exception e) {
+                // 알림 하나가 실패해도(예: 그 사이 탈퇴한 유저) 나머지는 계속 처리한다.
+                // 예전엔 여기서 예외가 나면 배치 전체 트랜잭션이 롤백되어, 이 알림이
+                // poison-pill처럼 이후 모든 회차를 계속 막았다.
+                log.warn("목표가 알림 발송 실패 - alertId: {}, reason: {}", alert.getId(), e.getMessage(), e);
+            }
         }
         log.info("목표가 알림 발송 완료: {}건", dispatched);
+    }
+
+    private void dispatchSingleAlert(Long alertId, Stock stock) {
+        PriceAlert alert = priceAlertRepository.findById(alertId).orElse(null);
+        if (alert == null) {
+            return; // 배치가 도는 사이 사용자가 직접 삭제했을 수 있음
+        }
+
+        notificationService.createNotification(
+                alert.getUserId(),
+                NotificationType.PRICE_ALERT,
+                "목표가 도달 알림",
+                stock.getName() + " 종목이 목표가 " + alert.getTargetPrice() + "원에 도달했습니다.",
+                "/stocks/" + stock.getCode());
+        priceAlertRepository.delete(alert);
     }
 
     private boolean isTriggered(PriceAlert alert, BigDecimal currentPrice) {

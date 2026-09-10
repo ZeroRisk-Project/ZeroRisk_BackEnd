@@ -110,6 +110,7 @@ class OrderServiceTest {
         given(holdingRepository.findByAccountIdAndStockId(any(), any())).willReturn(Optional.empty());
         given(kisQuoteClient.fetchQuote("005930")).willReturn(new KisQuoteResponse.Output(
                 "70000", "1000", "2", "1.41", "88800", "49900"));
+        given(orderRepository.sumPendingBuyReservedAmount(any())).willReturn(BigDecimal.ZERO);
 
         OrderCreateRequest request = new OrderCreateRequest(10L, "005930", OrderSide.BUY, OrderType.MARKET, 10L, null);
         OrderResponse response = orderService.createOrder(1L, request);
@@ -131,6 +132,7 @@ class OrderServiceTest {
         given(holdingRepository.findByAccountIdAndStockId(any(), any())).willReturn(Optional.empty());
         given(kisQuoteClient.fetchQuote("005930")).willReturn(new KisQuoteResponse.Output(
                 "70000", "1000", "2", "1.41", "88800", "49900"));
+        given(orderRepository.sumPendingBuyReservedAmount(any())).willReturn(BigDecimal.ZERO);
 
         OrderCreateRequest request = new OrderCreateRequest(
                 10L, "005930", OrderSide.BUY, OrderType.LIMIT, 10L, new BigDecimal("60000"));
@@ -151,6 +153,7 @@ class OrderServiceTest {
         lenient().when(holdingRepository.findByAccountIdAndStockId(any(), any())).thenReturn(Optional.empty());
         given(kisQuoteClient.fetchQuote("005930")).willReturn(new KisQuoteResponse.Output(
                 "70000", "1000", "2", "1.41", "88800", "49900"));
+        given(orderRepository.sumPendingBuyReservedAmount(any())).willReturn(BigDecimal.ZERO);
 
         OrderCreateRequest request = new OrderCreateRequest(10L, "005930", OrderSide.BUY, OrderType.MARKET, 10L, null);
 
@@ -167,6 +170,7 @@ class OrderServiceTest {
         given(accountRepository.findByIdForUpdate(10L)).willReturn(Optional.of(account));
         given(stockRepository.findByCode("005930")).willReturn(Optional.of(stock()));
         given(holdingRepository.findByAccountIdAndStockId(any(), any())).willReturn(Optional.empty());
+        given(orderRepository.sumPendingSellReservedQuantity(any(), any())).willReturn(BigDecimal.ZERO);
 
         OrderCreateRequest request = new OrderCreateRequest(10L, "005930", OrderSide.SELL, OrderType.MARKET, 10L, null);
 
@@ -326,10 +330,12 @@ class OrderServiceTest {
                 .quantity(10L)
                 .limitPrice(new BigDecimal("60000"))
                 .build();
+        ReflectionTestUtils.setField(order, "id", 100L);
         Account account = account(1L, new BigDecimal("1000000"));
         Stock stock = stock();
         ReflectionTestUtils.setField(stock, "id", 1L);
         given(orderRepository.findByStatusAndOrderType(OrderStatus.PENDING, OrderType.LIMIT)).willReturn(List.of(order));
+        given(orderRepository.findById(100L)).willReturn(Optional.of(order));
         given(stockRepository.findAllById(List.of(1L))).willReturn(List.of(stock));
         given(kisQuoteClient.fetchQuote("005930")).willReturn(new KisQuoteResponse.Output(
                 "55000", "1000", "5", "1.79", "88800", "49900"));
@@ -380,10 +386,12 @@ class OrderServiceTest {
                 .quantity(10L)
                 .limitPrice(new BigDecimal("60000"))
                 .build();
+        ReflectionTestUtils.setField(order, "id", 100L);
         Account account = account(1L, new BigDecimal("1000"));
         Stock stock = stock();
         ReflectionTestUtils.setField(stock, "id", 1L);
         given(orderRepository.findByStatusAndOrderType(OrderStatus.PENDING, OrderType.LIMIT)).willReturn(List.of(order));
+        given(orderRepository.findById(100L)).willReturn(Optional.of(order));
         given(stockRepository.findAllById(List.of(1L))).willReturn(List.of(stock));
         given(kisQuoteClient.fetchQuote("005930")).willReturn(new KisQuoteResponse.Output(
                 "55000", "1000", "5", "1.79", "88800", "49900"));
