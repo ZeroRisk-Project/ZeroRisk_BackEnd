@@ -7,26 +7,48 @@ import com.zerorisk.project.domain.stock.client.kis.dto.KisQuoteResponse;
 import com.zerorisk.project.domain.stock.dto.OrderBookLevel;
 import com.zerorisk.project.domain.stock.dto.OrderBookResponse;
 import com.zerorisk.project.domain.stock.dto.StockDetailResponse;
+import com.zerorisk.project.domain.stock.dto.StockQuoteResponse;
 import com.zerorisk.project.domain.stock.entity.Stock;
 import com.zerorisk.project.domain.stock.repository.StockRepository;
 import com.zerorisk.project.global.exception.StockNotFoundException;
 import com.zerorisk.project.global.exception.StockQuoteUnavailableException;
+import jakarta.annotation.PreDestroy;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StockQueryService {
 
     private static final Set<String> NEGATIVE_SIGNS = Set.of("4", "5");
 
+    // "전체보기"/검색 화면 한 페이지에 보이는 종목 수를 넘지 않도록 막아, 코드 목록을 잔뜩
+    // 넘겨 KIS 시세 조회를 과도하게 호출하는 것을 방지한다.
+    private static final int MAX_QUOTE_CODES = 30;
+
+    // 종목마다 순차 조회하면 페이지 하나(최대 30종목) 로딩에 수 초가 걸려 체감 속도가
+    // 크게 떨어지므로, KIS 호출 제한에 걸리지 않는 선에서 동시에 몇 개씩 병렬 조회한다.
+    private static final int QUOTE_CONCURRENCY = 5;
+
     private final StockRepository stockRepository;
     private final KisQuoteClient kisQuoteClient;
     private final KisOrderBookClient kisOrderBookClient;
+    private final ExecutorService quoteExecutor = Executors.newFixedThreadPool(QUOTE_CONCURRENCY);
+
+    @PreDestroy
+    void shutdownQuoteExecutor() {
+        quoteExecutor.shutdown();
+    }
 
     @Transactional(readOnly = true)
     public StockDetailResponse getDetail(String code) {
@@ -41,12 +63,6 @@ public class StockQueryService {
             throw new StockQuoteUnavailableException(e);
         }
 
-        long currentPrice = Long.parseLong(output.currentPrice());
-        long changeAmount = Long.parseLong(output.changeAmount());
-        if (NEGATIVE_SIGNS.contains(output.changeSign())) {
-            changeAmount = -changeAmount;
-        }
-        BigDecimal changeRate = new BigDecimal(output.changeRate());
         long week52High = Long.parseLong(output.week52High());
         long week52Low = Long.parseLong(output.week52Low());
 
@@ -54,11 +70,54 @@ public class StockQueryService {
                 stock.getCode(),
                 stock.getName(),
                 stock.getMarket(),
-                currentPrice,
-                changeAmount,
-                changeRate,
+                Long.parseLong(output.currentPrice()),
+                parseChangeAmount(output),
+                parseChangeRate(output),
                 week52High,
                 week52Low);
+    }
+
+    // 화면에 실제로 보이는 종목만큼만 개별 시세를 조회한다(페이지당 최대 MAX_QUOTE_CODES개).
+    // QUOTE_CONCURRENCY만큼 동시에 조회해 순차 조회 대비 응답 시간을 크게 줄이고, 조회에
+    // 실패한 종목은 건너뛰고 나머지 결과만 반환한다.
+    public List<StockQuoteResponse> getQuotes(List<String> codes) {
+        List<CompletableFuture<StockQuoteResponse>> futures = codes.stream()
+                .distinct()
+                .limit(MAX_QUOTE_CODES)
+                .map(code -> CompletableFuture.supplyAsync(() -> fetchQuoteOrNull(code), quoteExecutor))
+                .toList();
+
+        return futures.stream()
+                .map(CompletableFuture::join)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private StockQuoteResponse fetchQuoteOrNull(String code) {
+        try {
+            KisQuoteResponse.Output output = kisQuoteClient.fetchQuote(code);
+            return new StockQuoteResponse(
+                    code,
+                    Long.parseLong(output.currentPrice()),
+                    parseChangeAmount(output),
+                    parseChangeRate(output));
+        } catch (Exception e) {
+            log.warn("시세 조회 실패 - 목록에서 제외: code={}", code, e);
+            return null;
+        }
+    }
+
+    // KIS가 changeAmount/changeRate 문자열에 부호를 이미 포함해 내려주는 경우와 그렇지 않은
+    // 경우가 섞여 있어, 항상 abs()로 정규화한 뒤 changeSign(전일대비부호)만을 유일한 근거로
+    // 부호를 다시 매겨 두 값의 부호가 항상 일치하도록 한다.
+    private long parseChangeAmount(KisQuoteResponse.Output output) {
+        long changeAmount = Math.abs(Long.parseLong(output.changeAmount()));
+        return NEGATIVE_SIGNS.contains(output.changeSign()) ? -changeAmount : changeAmount;
+    }
+
+    private BigDecimal parseChangeRate(KisQuoteResponse.Output output) {
+        BigDecimal changeRate = new BigDecimal(output.changeRate()).abs();
+        return NEGATIVE_SIGNS.contains(output.changeSign()) ? changeRate.negate() : changeRate;
     }
 
     @Transactional(readOnly = true)

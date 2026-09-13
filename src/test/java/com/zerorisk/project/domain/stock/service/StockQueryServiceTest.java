@@ -10,11 +10,13 @@ import com.zerorisk.project.domain.stock.client.kis.dto.KisOrderBookResponse;
 import com.zerorisk.project.domain.stock.client.kis.dto.KisQuoteResponse;
 import com.zerorisk.project.domain.stock.dto.OrderBookResponse;
 import com.zerorisk.project.domain.stock.dto.StockDetailResponse;
+import com.zerorisk.project.domain.stock.dto.StockQuoteResponse;
 import com.zerorisk.project.domain.stock.entity.Market;
 import com.zerorisk.project.domain.stock.entity.Stock;
 import com.zerorisk.project.domain.stock.repository.StockRepository;
 import com.zerorisk.project.global.exception.StockNotFoundException;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -76,6 +78,22 @@ class StockQueryServiceTest {
         StockDetailResponse result = stockQueryService.getDetail("005930");
 
         assertThat(result.changeAmount()).isEqualTo(1000L);
+    }
+
+    @DisplayName("시세 조회 시 일부 종목이 실패해도 나머지 결과는 반환")
+    @Test
+    void 시세_조회_시_일부_종목이_실패해도_나머지_결과는_반환() {
+        stockQueryService = new StockQueryService(stockRepository, kisQuoteClient, kisOrderBookClient);
+        given(kisQuoteClient.fetchQuote("005930")).willReturn(new KisQuoteResponse.Output(
+                "72000", "1000", "2", "1.41", "88800", "49900"));
+        given(kisQuoteClient.fetchQuote("000660")).willThrow(new RuntimeException("조회 실패"));
+
+        List<StockQuoteResponse> result = stockQueryService.getQuotes(List.of("005930", "000660"));
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).code()).isEqualTo("005930");
+        assertThat(result.get(0).changeAmount()).isEqualTo(1000L);
+        assertThat(result.get(0).changeRate()).isEqualByComparingTo(new BigDecimal("1.41"));
     }
 
     @DisplayName("존재하지 않는 종목 코드면 예외 발생")

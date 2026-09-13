@@ -6,6 +6,7 @@ import com.zerorisk.project.domain.stock.dto.MarketIndexResponse;
 import com.zerorisk.project.domain.stock.dto.OrderBookResponse;
 import com.zerorisk.project.domain.stock.dto.RankingType;
 import com.zerorisk.project.domain.stock.dto.StockDetailResponse;
+import com.zerorisk.project.domain.stock.dto.StockQuoteResponse;
 import com.zerorisk.project.domain.stock.dto.StockRankingResponse;
 import com.zerorisk.project.domain.stock.dto.StockSummaryResponse;
 import com.zerorisk.project.domain.stock.service.StockChartService;
@@ -65,6 +66,12 @@ public class StockController {
     @GetMapping("/{code}")
     public ResponseEntity<StockDetailResponse> getDetail(@PathVariable String code) {
         return ResponseEntity.ok(stockQueryService.getDetail(code));
+    }
+
+    // "전체보기"/검색 목록에서 화면에 보이는 종목만큼만 넘겨 현재가/등락률을 채우는 용도.
+    @GetMapping("/quotes")
+    public ResponseEntity<List<StockQuoteResponse>> getQuotes(@RequestParam List<String> codes) {
+        return ResponseEntity.ok(stockQueryService.getQuotes(codes));
     }
 
     @GetMapping("/{code}/orderbook")

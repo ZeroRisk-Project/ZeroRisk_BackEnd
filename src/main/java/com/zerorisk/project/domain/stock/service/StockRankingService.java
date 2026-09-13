@@ -108,9 +108,13 @@ public class StockRankingService {
     }
 
     private StockRankingResponse toResponse(KisRankingResponse.Output output) {
-        long changeAmount = Long.parseLong(output.changeAmount());
+        long changeAmount = Math.abs(Long.parseLong(output.changeAmount()));
         if (NEGATIVE_SIGNS.contains(output.changeSign())) {
             changeAmount = -changeAmount;
+        }
+        BigDecimal changeRate = new BigDecimal(output.changeRate()).abs();
+        if (NEGATIVE_SIGNS.contains(output.changeSign())) {
+            changeRate = changeRate.negate();
         }
 
         return new StockRankingResponse(
@@ -118,15 +122,19 @@ public class StockRankingService {
                 output.name(),
                 Long.parseLong(output.currentPrice()),
                 changeAmount,
-                new BigDecimal(output.changeRate()),
+                changeRate,
                 Long.parseLong(output.volume()),
                 StockCodeType.isPreferred(output.code()));
     }
 
     private StockRankingResponse toResponse(Stock stock, KisQuoteResponse.Output output) {
-        long changeAmount = Long.parseLong(output.changeAmount());
+        long changeAmount = Math.abs(Long.parseLong(output.changeAmount()));
         if (NEGATIVE_SIGNS.contains(output.changeSign())) {
             changeAmount = -changeAmount;
+        }
+        BigDecimal changeRate = new BigDecimal(output.changeRate()).abs();
+        if (NEGATIVE_SIGNS.contains(output.changeSign())) {
+            changeRate = changeRate.negate();
         }
 
         return new StockRankingResponse(
@@ -134,7 +142,7 @@ public class StockRankingService {
                 stock.getName(),
                 Long.parseLong(output.currentPrice()),
                 changeAmount,
-                new BigDecimal(output.changeRate()),
+                changeRate,
                 0L,
                 StockCodeType.isPreferred(stock.getCode()));
     }
