@@ -61,8 +61,9 @@ public class PostController {
     public ResponseEntity<Page<PostResponse>> getPosts(
             @CurrentUserId Long viewerId,
             @RequestParam(required = false) BoardType boardType,
+            @RequestParam(required = false) Long stockId,
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(postService.getPosts(boardType, pageable, viewerId));
+        return ResponseEntity.ok(postService.getPosts(boardType, stockId, pageable, viewerId));
     }
 
     @PatchMapping("/{postId}")
