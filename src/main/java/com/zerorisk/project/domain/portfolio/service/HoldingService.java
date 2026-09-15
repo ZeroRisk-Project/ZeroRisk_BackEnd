@@ -40,6 +40,13 @@ public class HoldingService {
             throw new AccountException(AccountErrorCode.ACCESS_DENIED);
         }
 
+        return getHoldings(accountId);
+    }
+
+    // 소유권 검증 없이 accountId로 바로 조회 - 호출부가 이미 신뢰 가능한 경로(예: 프로필 조회 시
+    // targetUserId로 서버가 직접 찾은 계좌)로 accountId를 구했을 때만 사용할 것
+    @Transactional(readOnly = true)
+    public List<HoldingResponse> getHoldings(Long accountId) {
         List<Holding> holdings = holdingRepository.findByAccountId(accountId);
 
         Map<Long, Stock> stocksById = stockRepository.findAllById(
