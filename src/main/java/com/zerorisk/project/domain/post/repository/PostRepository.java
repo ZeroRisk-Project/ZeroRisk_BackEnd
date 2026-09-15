@@ -15,6 +15,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     Page<Post> findByIsDeletedFalse(Pageable pageable);
 
+    // 종목게시판 특정 종목의 게시글만 조회
+    Page<Post> findByBoardTypeAndStockIdAndIsDeletedFalse(BoardType boardType, Long stockId, Pageable pageable);
+
     // 관리자 전용: 삭제된 게시글도 포함해서 전체 조회 (복구 대상 확인용)
     Page<Post> findAllBy(Pageable pageable);
 

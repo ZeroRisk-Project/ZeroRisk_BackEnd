@@ -72,10 +72,15 @@ public class PostService {
         return PostResponse.from(post, commentCount, viewerId, imageUrls);
     }
 
-    public Page<PostResponse> getPosts(BoardType boardType, Pageable pageable, Long viewerId) {
-        Page<Post> posts = boardType != null
-                ? postRepository.findByBoardTypeAndIsDeletedFalse(boardType, pageable)
-                : postRepository.findByIsDeletedFalse(pageable);
+    public Page<PostResponse> getPosts(BoardType boardType, Long stockId, Pageable pageable, Long viewerId) {
+        Page<Post> posts;
+        if (boardType != null && stockId != null) {
+            posts = postRepository.findByBoardTypeAndStockIdAndIsDeletedFalse(boardType, stockId, pageable);
+        } else if (boardType != null) {
+            posts = postRepository.findByBoardTypeAndIsDeletedFalse(boardType, pageable);
+        } else {
+            posts = postRepository.findByIsDeletedFalse(pageable);
+        }
 
         List<Long> postIds = posts.getContent().stream()
                 .map(Post::getId)
