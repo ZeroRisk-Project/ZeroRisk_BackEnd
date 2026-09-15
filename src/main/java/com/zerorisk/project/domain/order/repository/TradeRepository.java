@@ -13,6 +13,8 @@ import org.springframework.data.repository.query.Param;
 public interface TradeRepository extends JpaRepository<Trade, Long> {
     Page<Trade> findByAccountId(Long accountId, Pageable pageable);
 
+    long countByAccountId(Long accountId);
+
     @Query("""
             SELECT new com.zerorisk.project.domain.order.dto.AccountTradeCountRow(t.accountId, COUNT(t))
             FROM Trade t
