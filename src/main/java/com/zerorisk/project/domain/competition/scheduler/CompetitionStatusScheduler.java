@@ -1,7 +1,11 @@
 package com.zerorisk.project.domain.competition.scheduler;
 
+import com.zerorisk.project.domain.account.entity.Account;
+import com.zerorisk.project.domain.account.repository.AccountRepository;
 import com.zerorisk.project.domain.competition.entity.Competition;
+import com.zerorisk.project.domain.competition.entity.CompetitionParticipant;
 import com.zerorisk.project.domain.competition.entity.CompetitionStatus;
+import com.zerorisk.project.domain.competition.repository.CompetitionParticipantRepository;
 import com.zerorisk.project.domain.competition.repository.CompetitionRepository;
 import com.zerorisk.project.domain.competition.service.CompetitionService;
 import java.time.LocalDateTime;
@@ -22,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class CompetitionStatusScheduler {
 
     private final CompetitionRepository competitionRepository;
+    private final CompetitionParticipantRepository competitionParticipantRepository;
+    private final AccountRepository accountRepository;
     private final CompetitionService competitionService;
 
     @Scheduled(cron = "0 */10 * * * *")
@@ -69,6 +75,17 @@ public class CompetitionStatusScheduler {
         for (Competition competition : targets) {
             try {
                 competition.startCalculating();
+
+                // 재평가가 실제로 끝날 때까지, 그 사이의 시세 변동을 이용한 거래를 막기 위해
+                // 참가자 전원의 계좌를 비활성화한다. (종료 시각과 실제 재평가 실행 시각 사이의
+                // 스케줄러 주기만큼의 시차 동안 거래가 계속 가능했던 문제 수정)
+                List<CompetitionParticipant> participants = competitionParticipantRepository
+                        .findByCompetitionId(competition.getId());
+                for (CompetitionParticipant participant : participants) {
+                    accountRepository.findById(participant.getAccountId())
+                            .ifPresent(Account::deactivate);
+                }
+
                 log.info("대회 결과 집계 시작 - competitionId: {}", competition.getId());
             } catch (Exception e) {
                 log.warn("대회 결과 집계 시작 실패 - competitionId: {}, reason: {}", competition.getId(), e.getMessage());
